@@ -5,8 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
+import { ProductModule } from './products/product.module';
 import { SharedModule } from './shared/shared.module';
 import entities from './entities';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -23,9 +25,12 @@ import entities from './entities';
       database: process.env.DATABASE_NAME,
       entities: [...entities],
       synchronize: process.env.DATABASE_SYNC == 'on' ? true : false,
+      extra: { allowPublicKeyRetrieval: true }
     }),
     UsersModule,
+    ProductModule,
     SharedModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
