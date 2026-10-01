@@ -1,11 +1,11 @@
-import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
+import { IsBoolean, IsDateString, IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { Exclude, Expose, plainToClass } from 'class-transformer';
 
-export class CreateUser{
-    
+export class CreateUser {
+
     @IsNotEmpty()
     userName!: string;
-    
+
     @IsNotEmpty()
     firstName!: string;
 
@@ -32,7 +32,7 @@ export class CreateUser{
     password!: string;
 }
 
-export class AuthenticateUser{
+export class AuthenticateUser {
     @IsNotEmpty()
     username!: string;
 
@@ -40,7 +40,7 @@ export class AuthenticateUser{
     password!: string;
 }
 
-export class ChangePasswordDto{
+export class ChangePasswordDto {
 
     @IsNotEmpty()
     userName!: string;
@@ -54,7 +54,7 @@ export class ChangePasswordDto{
 
     @IsNotEmpty()
     confirm_password!: string;
-    
+
 }
 
 export class SerializeUser {
@@ -91,7 +91,32 @@ export class SerializeUser {
 
     constructor(
         partial: Partial<SerializeUser>
-    ){
-        return plainToClass(SerializeUser, partial, {excludeExtraneousValues: true})
+    ) {
+        return plainToClass(SerializeUser, partial, { excludeExtraneousValues: true })
     }
+}
+
+export class UpdateUserDto {
+    @IsOptional()
+    @IsString()
+    @IsNotEmpty()
+    firstName?: string;
+
+    @IsOptional()
+    @IsString()
+    @IsNotEmpty()
+    lastName?: string;
+
+    @IsOptional() 
+    @IsString() 
+    @IsNotEmpty() 
+    fullName?: string;
+    
+    @IsOptional() 
+    @IsDateString() 
+    dateOfBirth?: string;
+
+    @IsOptional() 
+    @IsBoolean() 
+    isActive?: boolean;
 }

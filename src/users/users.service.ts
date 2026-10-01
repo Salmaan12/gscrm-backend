@@ -1,6 +1,6 @@
-import { BadRequestException, Body, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Body, HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Request } from 'express';
-import { AuthenticateUser, ChangePasswordDto, CreateUser, SerializeUser } from './user.dto';
+import { AuthenticateUser, ChangePasswordDto, CreateUser, SerializeUser, UpdateUserDto } from './user.dto';
 import { ResponseService } from 'src/shared/services/response.service';
 import { User } from 'src/entities/user.entity';
 import { IsNull, Repository } from 'typeorm';
@@ -78,6 +78,10 @@ export class UsersService {
                 return this.res.generateError('User not found', req);
             }
 
+            if(!findUserByuserName.isActive) {
+                return this.res.generateError('User status not active', req);
+            }
+
             const { password: Hashpassword } = findUserByuserName;
 
             const isValidPassword = await bcrypt.compare(password, Hashpassword);
@@ -144,6 +148,7 @@ export class UsersService {
                     lastName: true,
                     fullName: true,
                     dateOfBirth: true,
+                    phone: true,
                     isActive: true
                 }
             });
@@ -218,5 +223,27 @@ export class UsersService {
             return this.res.generateError(error, req)
         }
 
+    }
+
+    async getUserById(userId: string) {
+        const user = await this._userRepo.findOneBy({ id: +userId });
+        return user;
+    }
+
+    async updateUser(id: number, body: UpdateUserDto, req: Request) {
+        try {
+            
+            const findUser = await this._userRepo.findOneBy({id: +id})
+
+            if(!findUser) {
+                throw new HttpException("User not found", HttpStatus.NOT_FOUND);
+            }
+            const updateUser = await this._userRepo.update({id}, body);
+
+            return this.res.generateResponse(HttpStatus.OK, `${findUser?.userName} this user details has been updated`, updateUser, req);
+
+        } catch (error) {
+            return this.res.generateError(error, req)
+        }
     }
 }

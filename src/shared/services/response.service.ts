@@ -55,7 +55,7 @@ export class ResponseService {
             }
 
             const payload = {
-                message: error.message,
+                message: error,
                 isError: true,
                 route: orignal_url,
                 status_code: HttpStatus.INTERNAL_SERVER_ERROR
@@ -66,19 +66,20 @@ export class ResponseService {
 
             let msg = 'something went wrong !';
             let code = HttpStatus.INTERNAL_SERVER_ERROR
-            if (error.message == 'jwt expired' || error.message == 'jwt malformed') {
+            if (error == 'jwt expired' || error == 'jwt malformed') {
                 msg = 'Auth token is expired! please re-login into system'
                 code = HttpStatus.UNAUTHORIZED
             }
 
             if (orignal_url != "Cron Job Failed") {
-                throw new HttpException(error.message, error.status)
+                throw new HttpException(error, HttpStatus.BAD_REQUEST)
             }
 
+            // throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR)
 
-        } catch (error) {
-            console.log(error);
-            throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR)
+
+        } catch (error:any) {
+            throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 }
