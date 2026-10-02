@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Post, Request, UseGuards  } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post, Delete, Request, UseGuards, Param  } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProduct,CreateBrand,CreateBrandSKU,UpdateProduct,UpdateBrand,UpdateBrandSKU } from './product.dto';
 import { Request as request } from 'express';
@@ -51,6 +51,24 @@ export class ProductController {
     @UseGuards(JwtAuthGuard)
     updateBrandSku(@Body() body: UpdateBrandSKU, @Request() req: request) {
         return this._products.updateBrandSKU(body,req);
+    }
+
+    @Delete('deleteproduct/:id')
+    @UseGuards(JwtAuthGuard)
+    deleteProduct(@Param('id') id: number, @Request() req: request) {
+        return this._products.deleteProduct(id,req);
+    }
+
+    @Delete('deletebrand/:id')
+    @UseGuards(JwtAuthGuard)
+    deleteBrand(@Param('id') id: number, @Request() req: request) {
+        return this._products.deleteBrand(id,req);
+    }
+
+    @Delete('deletebrandsku/:id')
+    @UseGuards(JwtAuthGuard)
+    deleteBrandSku(@Param('id') id: number, @Request() req: request) {
+        return this._products.deleteBrandSku(id,req);
     }
 
 }

@@ -5,6 +5,7 @@ import { ResponseService } from 'src/shared/services/response.service';
 import { Product } from 'src/entities/product.entity';
 import { ProductBrand } from 'src/entities/product-brand.entity';
 import { ProductBrandSku } from 'src/entities/product-brand-sku.entity';
+import { ProductBrandSkuMaking } from 'src/entities/product-brand-sku-making.entity';
 import { IsNull, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -21,6 +22,8 @@ export class ProductService {
         private readonly _productbrandRepo: Repository<ProductBrand>,
         @InjectRepository(ProductBrandSku)
         private readonly _productbrandskuRepo: Repository<ProductBrandSku>,
+        @InjectRepository(ProductBrandSkuMaking)
+        private readonly _productbrandskumakingRepo: Repository<ProductBrandSkuMaking>,
         @Inject("RESPONSE-SERVICE") private res: ResponseService,
         @Inject('JWT-SERVICE') private jwt: JwtService
     ) {}
@@ -152,7 +155,7 @@ export class ProductService {
     async createBrandSKU(body: CreateBrandSKU, req: Request) {
         try {
     
-            const { name, productBrandId, IsActive, weightInGM } = body;
+            const { name, productBrandId, IsActive, weightInGM, makingCharges } = body;
     
             const checkBrandSKUAlreadyExists: ProductBrandSku[] = await this._productbrandskuRepo.createQueryBuilder('brandsku')
                     .where('brandsku.name = :name AND brandsku.productBrandId = :productBrandId', { name , productBrandId })
@@ -170,7 +173,16 @@ export class ProductService {
             };
     
             const brandsku = this._productbrandskuRepo.create(payload);
-            await this._productbrandskuRepo.save(brandsku);
+            const savedBrandSku = await this._productbrandskuRepo.save(brandsku);
+
+            const payloadskumaking: ProductBrandSku | any = {
+                    productBrandSkuId: savedBrandSku[0].id,
+                    makingCharges: makingCharges,
+                    isActive: IsActive
+            };
+    
+            const brandskumaking = this._productbrandskumakingRepo.create(payloadskumaking);
+            await this._productbrandskumakingRepo.save(brandskumaking);
     
             return this.res.generateResponse(
                     200,
@@ -266,7 +278,7 @@ export class ProductService {
     async updateBrandSKU(body: UpdateBrandSKU, req: Request) {
         try {
     
-            const { id, name, productBrandId, IsActive, weightInGM } = body;
+            const { id, name, productBrandId, IsActive, weightInGM, makingCharges } = body;
     
             const checkBrandSKUAlreadyExists: ProductBrandSku[] = await this._productbrandskuRepo.createQueryBuilder('brandsku')
                     .where('brandsku.id <> :id AND brandsku.name = :name AND brandsku.productBrandId = :productBrandId', { id, name , productBrandId })
@@ -288,11 +300,111 @@ export class ProductService {
                 .where('id = :id', { id })
                 .execute()
 
-            // if brand sku not update return error message
-            if (!updatebrandsku.affected) throw new Error("brand sku not updated, internal server issues");
+            // Update Brand SKU Making in Database
+            const updatebrandskumaking = await this._productbrandskumakingRepo.createQueryBuilder('brandskumaking')
+                .update()
+                .set({
+                    makingCharges: makingCharges,
+                    isActive: IsActive
+                })
+                .where('productBrandSkuId = :id', { id })
+                .execute()
+
+            // if brand sku and making not update return error message
+            if (!updatebrandsku.affected || !updatebrandskumaking.affected) throw new Error("brand sku not updated, internal server issues");
     
             /// Return success message
             return this.res.generateResponse(HttpStatus.OK, "Brand SKU Updated Successfully", [], req);
+                
+        } catch (error) {
+            return this.res.generateError(
+                    error || 'Something went wrong',
+                    req
+            );
+        }
+    }
+
+    async deleteProduct(id: number, req: Request) {
+        try {
+
+            const checkProductExists = await this._productRepo.findOne({
+                where: {
+                    id: id,
+                },
+            });
+    
+            if (!checkProductExists) {
+                throw new NotFoundException('Product not found');
+            }
+            
+            const result = await this._productRepo.delete(id);
+
+            if (result.affected === 0) {
+                throw new NotFoundException('Product not found');
+            }
+    
+            /// Return success message
+            return this.res.generateResponse(HttpStatus.OK, "Product Deleted Successfully", [], req);
+                
+        } catch (error) {
+            return this.res.generateError(
+                    error || 'Something went wrong',
+                    req
+            );
+        }
+    }
+
+    async deleteBrand(id: number, req: Request) {
+        try {
+
+            const checkBrandExists = await this._productbrandRepo.findOne({
+                where: {
+                    id: id,
+                },
+            });
+    
+            if (!checkBrandExists) {
+                throw new NotFoundException('Brand not found');
+            }
+            
+            const result = await this._productbrandRepo.delete(id);
+
+            if (result.affected === 0) {
+                throw new NotFoundException('Brand not found');
+            }
+    
+            /// Return success message
+            return this.res.generateResponse(HttpStatus.OK, "Brand Deleted Successfully", [], req);
+                
+        } catch (error) {
+            return this.res.generateError(
+                    error || 'Something went wrong',
+                    req
+            );
+        }
+    }
+
+    async deleteBrandSku(id: number, req: Request) {
+        try {
+
+            const checkBrandSkuExists = await this._productbrandskuRepo.findOne({
+                where: {
+                    id: id,
+                },
+            });
+    
+            if (!checkBrandSkuExists) {
+                throw new NotFoundException('Brand Sku not found');
+            }
+            
+            const result = await this._productbrandskuRepo.delete(id);
+
+            if (result.affected === 0) {
+                throw new NotFoundException('Brand Sku not found');
+            }
+    
+            /// Return success message
+            return this.res.generateResponse(HttpStatus.OK, "Brand Sku Deleted Successfully", [], req);
                 
         } catch (error) {
             return this.res.generateError(

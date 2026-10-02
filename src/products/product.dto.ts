@@ -71,6 +71,9 @@ export class CreateBrandSKU{
     weightInGM!: string;
 
     @IsNotEmpty()
+    makingCharges!: string;
+
+    @IsNotEmpty()
     IsActive!: boolean;
 
 }
@@ -88,6 +91,9 @@ export class UpdateBrandSKU{
 
     @IsNotEmpty()
     weightInGM!: string;
+
+    @IsNotEmpty()
+    makingCharges!: string;
 
     @IsNotEmpty()
     IsActive!: boolean;
