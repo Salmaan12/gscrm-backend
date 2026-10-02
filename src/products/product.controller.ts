@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Post, Delete, Request, UseGuards, Param  } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post, Delete, Request, UseGuards, Param, ParseIntPipe  } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProduct,CreateBrand,CreateBrandSKU,UpdateProduct,UpdateBrand,UpdateBrandSKU } from './product.dto';
 import { Request as request } from 'express';
@@ -35,39 +35,39 @@ export class ProductController {
         return this._products.createBrandSKU(body,req);
     }
 
-    @Post('updateproduct')
+    @Post('updateproduct/:id')
     @UseGuards(JwtAuthGuard)
-    updateProduct(@Body() body: UpdateProduct, @Request() req: request) {
-        return this._products.updateProduct(body,req);
+    updateProduct(@Param('id', ParseIntPipe) id: number,@Body() body: UpdateProduct, @Request() req: request) {
+        return this._products.updateProduct(id,body,req);
     }
 
-    @Post('updatebrand')
+    @Post('updatebrand/:id')
     @UseGuards(JwtAuthGuard)
-    updateBrand(@Body() body: UpdateBrand, @Request() req: request) {
-        return this._products.updateBrand(body,req);
+    updateBrand(@Param('id', ParseIntPipe) id: number,@Body() body: UpdateBrand, @Request() req: request) {
+        return this._products.updateBrand(id,body,req);
     }
 
-    @Post('updatebrandsku')
+    @Post('updatebrandsku/:id')
     @UseGuards(JwtAuthGuard)
-    updateBrandSku(@Body() body: UpdateBrandSKU, @Request() req: request) {
-        return this._products.updateBrandSKU(body,req);
+    updateBrandSku(@Param('id', ParseIntPipe) id: number,@Body() body: UpdateBrandSKU, @Request() req: request) {
+        return this._products.updateBrandSKU(id,body,req);
     }
 
     @Delete('deleteproduct/:id')
     @UseGuards(JwtAuthGuard)
-    deleteProduct(@Param('id') id: number, @Request() req: request) {
+    deleteProduct(@Param('id', ParseIntPipe) id: number, @Request() req: request) {
         return this._products.deleteProduct(id,req);
     }
 
     @Delete('deletebrand/:id')
     @UseGuards(JwtAuthGuard)
-    deleteBrand(@Param('id') id: number, @Request() req: request) {
+    deleteBrand(@Param('id', ParseIntPipe) id: number, @Request() req: request) {
         return this._products.deleteBrand(id,req);
     }
 
     @Delete('deletebrandsku/:id')
     @UseGuards(JwtAuthGuard)
-    deleteBrandSku(@Param('id') id: number, @Request() req: request) {
+    deleteBrandSku(@Param('id', ParseIntPipe) id: number, @Request() req: request) {
         return this._products.deleteBrandSku(id,req);
     }
 

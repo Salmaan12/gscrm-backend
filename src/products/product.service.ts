@@ -8,8 +8,6 @@ import { ProductBrandSku } from 'src/entities/product-brand-sku.entity';
 import { ProductBrandSkuMaking } from 'src/entities/product-brand-sku-making.entity';
 import { IsNull, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as bcrypt from 'bcrypt';
-import { JwtService } from 'src/shared/services/jwt.service';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 
 @Injectable()
@@ -24,8 +22,7 @@ export class ProductService {
         private readonly _productbrandskuRepo: Repository<ProductBrandSku>,
         @InjectRepository(ProductBrandSkuMaking)
         private readonly _productbrandskumakingRepo: Repository<ProductBrandSkuMaking>,
-        @Inject("RESPONSE-SERVICE") private res: ResponseService,
-        @Inject('JWT-SERVICE') private jwt: JwtService
+        @Inject("RESPONSE-SERVICE") private res: ResponseService
     ) {}
 
     async getAllProductBrandSKUs(req: Request) {
@@ -54,7 +51,14 @@ export class ProductService {
                     name: true,
                     productBrandId: true,
                     weightInGM: true,
-                    isActive: true
+                    isActive: true,
+                    makings: {
+                        makingCharges: true,
+                        id: true // Required by TypeORM to map relations properly
+                    }
+                },
+                relations: {
+                    makings: true
                 }
             });
 
@@ -175,14 +179,21 @@ export class ProductService {
             const brandsku = this._productbrandskuRepo.create(payload);
             const savedBrandSku = await this._productbrandskuRepo.save(brandsku);
 
-            const payloadskumaking: ProductBrandSku | any = {
-                    productBrandSkuId: savedBrandSku[0].id,
-                    makingCharges: makingCharges,
-                    isActive: IsActive
-            };
+            // const payloadskumaking: ProductBrandSkuMaking | any = {
+            //         productBrandSkuId: savedBrandSku[0].id,
+            //         makingCharges: makingCharges,
+            //         isActive: IsActive
+            // };
     
-            const brandskumaking = this._productbrandskumakingRepo.create(payloadskumaking);
-            await this._productbrandskumakingRepo.save(brandskumaking);
+            // const brandskumaking = this._productbrandskumakingRepo.create(payloadskumaking);
+            
+            const makingChargesPayload = this._productbrandskumakingRepo.create({
+                    makingCharges: makingCharges, 
+                    isActive: IsActive,
+                    productBrandSku: savedBrandSku as any
+            });
+
+            await this._productbrandskumakingRepo.save(makingChargesPayload);
     
             return this.res.generateResponse(
                     200,
@@ -199,10 +210,10 @@ export class ProductService {
         }
     }
 
-    async updateProduct(body: UpdateProduct, req: Request) {
+    async updateProduct(id: number,body: UpdateProduct, req: Request) {
         try {
     
-            const { id, name, type, IsActive } = body;
+            const { name, type, IsActive } = body;
     
             const checkProductAlreadyExists: Product[] = await this._productRepo.createQueryBuilder('product')
                     .where('product.id <> :id AND product.name = :name AND product.type = :type', { id, name , type })
@@ -237,10 +248,10 @@ export class ProductService {
         }
     }
 
-    async updateBrand(body: UpdateBrand, req: Request) {
+    async updateBrand(id: number,body: UpdateBrand, req: Request) {
         try {
     
-            const { id, name, productId, IsActive } = body;
+            const { name, productId, IsActive } = body;
     
             const checkBrandAlreadyExists: ProductBrand[] = await this._productbrandRepo.createQueryBuilder('brand')
                     .where('brand.id <> :id AND brand.name = :name AND brand.productId = :productId', { id, name , productId })
@@ -275,10 +286,10 @@ export class ProductService {
         }
     }
 
-    async updateBrandSKU(body: UpdateBrandSKU, req: Request) {
+    async updateBrandSKU(id: number,body: UpdateBrandSKU, req: Request) {
         try {
     
-            const { id, name, productBrandId, IsActive, weightInGM, makingCharges } = body;
+            const { name, productBrandId, IsActive, weightInGM, makingCharges } = body;
     
             const checkBrandSKUAlreadyExists: ProductBrandSku[] = await this._productbrandskuRepo.createQueryBuilder('brandsku')
                     .where('brandsku.id <> :id AND brandsku.name = :name AND brandsku.productBrandId = :productBrandId', { id, name , productBrandId })
@@ -334,13 +345,13 @@ export class ProductService {
             });
     
             if (!checkProductExists) {
-                throw new NotFoundException('Product not found');
+                return this.res.generateError('Product not found',req);
             }
             
             const result = await this._productRepo.delete(id);
 
             if (result.affected === 0) {
-                throw new NotFoundException('Product not found');
+                return this.res.generateError('Product not found',req);
             }
     
             /// Return success message
@@ -364,13 +375,13 @@ export class ProductService {
             });
     
             if (!checkBrandExists) {
-                throw new NotFoundException('Brand not found');
+                return this.res.generateError('Brand not found',req);
             }
             
             const result = await this._productbrandRepo.delete(id);
 
             if (result.affected === 0) {
-                throw new NotFoundException('Brand not found');
+                return this.res.generateError('Brand not found',req);
             }
     
             /// Return success message
@@ -394,13 +405,13 @@ export class ProductService {
             });
     
             if (!checkBrandSkuExists) {
-                throw new NotFoundException('Brand Sku not found');
+                return this.res.generateError('Brand Sku not found',req);
             }
             
             const result = await this._productbrandskuRepo.delete(id);
 
             if (result.affected === 0) {
-                throw new NotFoundException('Brand Sku not found');
+                return this.res.generateError('Brand Sku not found',req);
             }
     
             /// Return success message

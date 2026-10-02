@@ -15,9 +15,6 @@ export class CreateProduct{
 }
 
 export class UpdateProduct{
-    
-    @IsNotEmpty()
-    id!: number;
 
     @IsNotEmpty()
     name!: string;
@@ -44,9 +41,6 @@ export class CreateBrand{
 }
 
 export class UpdateBrand{
-    
-    @IsNotEmpty()
-    id!: number;
 
     @IsNotEmpty()
     productId!: number;
@@ -79,9 +73,6 @@ export class CreateBrandSKU{
 }
 
 export class UpdateBrandSKU{
-    
-    @IsNotEmpty()
-    id!: number;
 
     @IsNotEmpty()
     productBrandId!: number;
