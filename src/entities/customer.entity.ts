@@ -26,6 +26,9 @@ export class Customer {
   @Column({ type: 'varchar', length: 255, nullable: true })
   refineCharges?: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  diffCharges?: string;
+
   @Column({ type: 'boolean', default: true })
   isActive!: boolean;
 

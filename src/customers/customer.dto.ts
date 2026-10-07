@@ -19,6 +19,9 @@ export class CreateUpdateCustomer {
     refineCharges!: string;
 
     @IsNotEmpty()
+    diffCharges!: string;
+
+    @IsNotEmpty()
     @IsBoolean() 
     isActive!: boolean;
 }
