@@ -19,7 +19,7 @@ export class CustomersService {
     async createCustomer(body: CreateUpdateCustomer, req: Request) {
         try {
 
-            const { customerName, primaryPhone, secondaryPhone, cnic, refineCharges, isActive } = body;
+            const { customerName, primaryPhone, secondaryPhone, cnic, refineCharges, diffCharges, isActive } = body;
 
             const checkCustomerAlreadyExists: Customer[] = await this._customerRepo.createQueryBuilder('customer')
                 .where('customer.customerName = :customerName AND customer.cnic = :cnic', { customerName , cnic })
@@ -35,6 +35,7 @@ export class CustomersService {
                 secondaryPhone: secondaryPhone,
                 cnic: cnic,
                 refineCharges: refineCharges,
+                diffCharges: diffCharges,
                 isActive: isActive
             };
 
@@ -66,6 +67,7 @@ export class CustomersService {
                     secondaryPhone: true,
                     cnic: true,
                     refineCharges: true,
+                    diffCharges: true,
                     isActive: true
                 }
             });
