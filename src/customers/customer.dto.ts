@@ -25,3 +25,15 @@ export class CreateUpdateCustomer {
     @IsBoolean() 
     isActive!: boolean;
 }
+
+export class PaginationDto {
+
+    @IsNotEmpty()
+    pageSize!: string;
+
+    @IsNotEmpty()
+    page!: string;
+
+    searchStr!: string;
+
+}
