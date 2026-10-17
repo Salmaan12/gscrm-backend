@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Put, Request, UseGuards, Delete } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Put, Request, UseGuards, Delete, Query } from '@nestjs/common';
 import { CustomersService } from './customers.service';
-import { CreateUpdateCustomer } from './customer.dto';
+import { CreateUpdateCustomer, PaginationDto } from './customer.dto';
 import { Request as request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -30,6 +30,12 @@ export class CustomersController {
     @UseGuards(JwtAuthGuard)
     getAllCustomers(@Request() req: request) {
         return this._customers.getAllCustomers(req);
+    }
+
+    @Get('all/pagination')
+    @UseGuards(JwtAuthGuard)
+    getAllCustomersWithPagination(@Query() params: PaginationDto, @Request() req: request){
+        return this._customers.getAllCustomersWithPagination(params, req);
     }
 
     @Get('getCustomerById/:id')
