@@ -11,6 +11,7 @@ import { ProductBrand } from './product-brand.entity';
 import { ProductBrandSkuMaking } from './product-brand-sku-making.entity';
 import { CurrentRateProductBrandSku } from './current-rate-product-brand-sku.entity';
 import { Ratework } from './ratework.entity';
+import { SalePoint } from './salepoint.entity';
 
 @Entity('product_brand_sku')
 export class ProductBrandSku {
@@ -53,4 +54,7 @@ export class ProductBrandSku {
 
   @OneToMany(() => Ratework, (ratework) => ratework.productBrandSku)
   rateworks!: Ratework[];
+
+  @OneToMany(() => SalePoint, (salePoint) => salePoint.customer)
+  salePoint!: SalePoint[];
 }
