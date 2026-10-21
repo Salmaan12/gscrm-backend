@@ -66,6 +66,12 @@ export class CreateSalePoint {
     @IsNotEmpty()
     recordcreated_at!: Date;
 
+    @IsOptional()
+    productType!: string;
+    
+    @IsOptional()
+    descriptionNote!: string;
+
 }
 
 export class SalePointDto {
