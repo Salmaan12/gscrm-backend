@@ -46,7 +46,7 @@ export class CustomersController {
 
     @Delete('delete/:id')
     @UseGuards(JwtAuthGuard)
-    deleteProduct(@Param('id', ParseIntPipe) id: number, @Request() req: request) {
+    deleteCustomer(@Param('id', ParseIntPipe) id: number, @Request() req: request) {
         return this._customers.deleteCustomer(id,req);
     }
 

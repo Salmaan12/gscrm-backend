@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Ratework } from './ratework.entity';
+import { SalePoint } from './salepoint.entity';
 
 @Entity('customer')
 export class Customer {
@@ -34,4 +35,7 @@ export class Customer {
 
   @OneToMany(() => Ratework, (ratework) => ratework.customer)
   rateworks!: Ratework[];
+
+  @OneToMany(() => SalePoint, (salePoint) => salePoint.customer)
+  salePoint!: SalePoint[];
 }

@@ -8,6 +8,7 @@ import { ProductBrandSku } from "./product-brand-sku.entity";
 import { ProductBrand } from "./product-brand.entity";
 import { Product } from "./product.entity";
 import { Ratework } from "./ratework.entity";
+import { SalePoint } from "./salepoint.entity";
 import { UserModule } from "./user-module.entity";
 import { User } from "./user.entity";
 
@@ -23,7 +24,8 @@ const entities = [
     Customer,
     CurrentRate,
     CurrentRateProductBrandSku,
-    ApplicationLogs
+    ApplicationLogs,
+    SalePoint
 ]
 
 export default entities;
