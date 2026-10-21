@@ -77,9 +77,11 @@ export class CreateSalePoint {
 export class SalePointDto {
 
     @IsNotEmpty()
+    @IsDateString() 
     startDate!: string;
 
     @IsNotEmpty()
+    @IsDateString() 
     endDate!: string;
 
     customerId!: number;
