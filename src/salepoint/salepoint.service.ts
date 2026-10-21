@@ -94,8 +94,18 @@ export class SalePointService {
     try {
       const { startDate, endDate, customerId, referenceNo } = params;
 
+      if (startDate !== undefined || endDate !== undefined) {
+        this.res.generateError('Start & End Dates are required to extract Sale Point Entries.', req);
+      }
+
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
       const where: any = {
-        recordcreated_at: Between(startDate, endDate),
+        recordcreated_at: Between(start, end),
       };
       where.isDeleted = false;
 
@@ -247,7 +257,7 @@ export class SalePointService {
         .update()
         .set({
           isDeleted: true,
-          deleted_at : new Date()
+          deleted_at: new Date()
         })
         .where('id = :id', { id })
         .execute()

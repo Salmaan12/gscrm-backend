@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Put, Request, UseGuards, Delete, Query, ParseArrayPipe } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Put, Request, UseGuards, Delete, Query, ParseArrayPipe, ValidationPipe, UsePipes } from '@nestjs/common';
 import { SalePointService } from './salepoint.service';
 import { CreateSalePoint, SalePointDto } from './salepoint.dto';
 import { Request as request } from 'express';
@@ -13,6 +13,7 @@ export class SalePointController {
 
     @Post('create')
     @UseGuards(JwtAuthGuard)
+    @UsePipes(new ValidationPipe({ transform: true }))
     createSalePointEntiries(@Body(new ParseArrayPipe({
         items: CreateSalePoint,
     }))
@@ -22,6 +23,7 @@ export class SalePointController {
 
     @Get('all/dailyReport')
     @UseGuards(JwtAuthGuard)
+    @UsePipes(new ValidationPipe({ transform: true }))
     getAllSalePointEntiries(@Query() params: SalePointDto, @Request() req: request){
         return this._salepoint.getAllSalePointEntiries(params, req);
     }
