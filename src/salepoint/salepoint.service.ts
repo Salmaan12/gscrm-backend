@@ -61,7 +61,9 @@ export class SalePointService {
           karat: item.karat,
           rate: item.rate,
           status: item.status,
-          recordcreated_at: item.recordcreated_at
+          recordcreated_at: item.recordcreated_at,
+          productType: item.productType,
+          descriptionNote: item.descriptionNote
         } as SalePoint)
         );
 
@@ -130,6 +132,8 @@ export class SalePointService {
           rate: true,
           status: true,
           recordcreated_at: true,
+          productType: true,
+          descriptionNote: true,
           customer: {
             customerName: true,
             id: true // Required by TypeORM to map relations properly
@@ -199,6 +203,8 @@ export class SalePointService {
         rate: true,
         status: true,
         recordcreated_at: true,
+        productType: true,
+        descriptionNote: true,
         customer: {
           customerName: true,
           id: true // Required by TypeORM to map relations properly
