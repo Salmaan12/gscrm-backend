@@ -95,7 +95,7 @@ export class SalePointService {
       const { startDate, endDate, customerId, referenceNo } = params;
 
       if (startDate !== undefined || endDate !== undefined) {
-        this.res.generateError('Start & End Dates are required to extract Sale Point Entries.', req);
+        return this.res.generateError('Start & End Dates are required to extract Sale Point Entries.', req);
       }
 
       const start = new Date(startDate);
