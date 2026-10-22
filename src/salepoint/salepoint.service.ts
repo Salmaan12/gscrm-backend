@@ -11,7 +11,7 @@ import { Request } from 'express';
 import { CreateSalePoint, SalePointDto } from './salepoint.dto';
 import { ResponseService } from 'src/shared/services/response.service';
 import { SalePoint } from 'src/entities/salepoint.entity';
-import { Between, IsNull, Like, Repository } from 'typeorm';
+import { Between, In, IsNull, Like, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 
@@ -106,6 +106,8 @@ export class SalePointService {
 
       const where: any = {
         recordcreated_at: Between(start, end),
+        transactionCategory: Not(In(['Bill Received', 'Bill Given'])),
+        productType: Not('RateWork'),
       };
       where.isDeleted = false;
 
@@ -116,6 +118,7 @@ export class SalePointService {
       if (referenceNo !== undefined) {
         where.referenceNo = referenceNo;
       }
+
 
       const salepointentries = await this._salepointRepo.find({
         where,
