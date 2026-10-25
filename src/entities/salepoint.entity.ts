@@ -37,7 +37,7 @@ export class SalePoint {
     @Column({ type: 'varchar', length: 100 })
     transactionCategory!: string;
 
-    @Column({ type: 'varchar', length: 2 })
+    @Column({ type: 'varchar', length: 10 })
     report!: string;
 
     @Column({ type: 'varchar', length: 15 })
@@ -70,7 +70,7 @@ export class SalePoint {
     @Column({ type: 'varchar', length: 15 })
     refiningTotal!: string;
     
-    @Column({ type: 'varchar', length: 2 })
+    @Column({ type: 'varchar', length: 10 })
     karat!: string;
     
     @Column({ type: 'varchar', length: 20 })

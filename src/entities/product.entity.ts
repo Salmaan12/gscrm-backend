@@ -9,6 +9,9 @@ import { ProductBrand } from './product-brand.entity';
 import { CurrentRateProductBrandSku } from './current-rate-product-brand-sku.entity';
 import { Ratework } from './ratework.entity';
 import { SalePoint } from './salepoint.entity';
+import { Inventory } from './inventory.entity';
+import { Expense } from './expense.entity';
+import { InventorySnapshot } from './inventorysnapshot.entity';
 
 @Entity('product')
 export class Product {
@@ -36,6 +39,15 @@ export class Product {
   @OneToMany(() => Ratework, (ratework) => ratework.product)
   rateworks!: Ratework[];
 
-  @OneToMany(() => SalePoint, (salePoint) => salePoint.customer)
+  @OneToMany(() => SalePoint, (salePoint) => salePoint.product)
   salePoint!: SalePoint[];
+
+  @OneToMany(() => Inventory, (inventory) => inventory.product)
+  inventory!: Inventory[];
+
+  @OneToMany(() => Expense, (expense) => expense.product)
+  expense!: Expense[];
+
+  @OneToMany(() => InventorySnapshot, (inventorysnapshot) => inventorysnapshot.product)
+  inventorysnapshot!: InventorySnapshot[];
 }

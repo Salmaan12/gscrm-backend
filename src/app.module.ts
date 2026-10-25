@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { ProductModule } from './products/product.module';
 import { CustomersModule } from './customers/customers.module';
 import { SalePointModule } from './salepoint/salepoint.module';
+import { ExpenseModule } from './expense/expense.module';
 import { SharedModule } from './shared/shared.module';
 import entities from './entities';
 import { AuthModule } from './auth/auth.module';
@@ -33,6 +34,7 @@ import { AuthModule } from './auth/auth.module';
     ProductModule,
     CustomersModule,
     SalePointModule,
+    ExpenseModule,
     SharedModule,
     AuthModule,
   ],
