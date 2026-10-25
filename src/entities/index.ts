@@ -11,6 +11,9 @@ import { Ratework } from "./ratework.entity";
 import { SalePoint } from "./salepoint.entity";
 import { UserModule } from "./user-module.entity";
 import { User } from "./user.entity";
+import { Inventory } from "./inventory.entity";
+import { Expense } from "./expense.entity";
+import { InventorySnapshot } from "./inventorysnapshot.entity";
 
 const entities = [
     User,
@@ -25,7 +28,10 @@ const entities = [
     CurrentRate,
     CurrentRateProductBrandSku,
     ApplicationLogs,
-    SalePoint
+    SalePoint,
+    Inventory,
+    Expense,
+    InventorySnapshot
 ]
 
 export default entities;
