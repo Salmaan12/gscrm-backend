@@ -9,6 +9,7 @@ import { ProductModule } from './products/product.module';
 import { CustomersModule } from './customers/customers.module';
 import { SalePointModule } from './salepoint/salepoint.module';
 import { ExpenseModule } from './expense/expense.module';
+import { InventoryModule } from './inventory/inventory.module';
 import { SharedModule } from './shared/shared.module';
 import entities from './entities';
 import { AuthModule } from './auth/auth.module';
@@ -35,6 +36,7 @@ import { AuthModule } from './auth/auth.module';
     CustomersModule,
     SalePointModule,
     ExpenseModule,
+    InventoryModule,
     SharedModule,
     AuthModule,
   ],

@@ -46,9 +46,9 @@ export class Inventory {
     description!: string;
 
     @Column({
-        type: 'datetime',
+        type: 'date',
     })
-    recordcreated_at!: Date;
+    inventoryDate!: Date;
 
     @Column({ type: 'boolean', default: false })
     isDeleted!: boolean;
