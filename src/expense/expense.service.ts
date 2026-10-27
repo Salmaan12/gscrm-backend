@@ -53,6 +53,8 @@ export class ExpenseService {
             const expense = this._expenseRepo.create(payload);
             await this._expenseRepo.save(expense);
 
+            ///Adjust Inventory Snapshot
+
             return this.res.generateResponse(
                 200,
                 'Expense created successfully',
@@ -72,6 +74,8 @@ export class ExpenseService {
                 throw new HttpException('Expense not found', HttpStatus.NOT_FOUND);
             }
             const updateExpense = await this._expenseRepo.update({ id }, body);
+
+            ///Adjust Inventory Snapshot
 
             return this.res.generateResponse(
                 HttpStatus.OK,
@@ -109,6 +113,8 @@ export class ExpenseService {
             // if expense not update return error message
             if (!updateexpenseentry.affected) throw new Error("Expense Entry not updated, internal server issues");
 
+            ///Adjust Inventory Snapshot
+
             /// Return success message
             return this.res.generateResponse(HttpStatus.OK, "Expense Deleted Successfully", [], req);
         } catch (error) {
@@ -126,9 +132,12 @@ export class ExpenseService {
                     { description: Like(`%${searchStr}%`) },
                 ]
                 : undefined;
+            const filteredWhere = where
+                ? where.map((condition) => ({ ...condition, isDeleted: false }))
+                : { isDeleted: false };
 
             const [expenses, total] = await this._expenseRepo.findAndCount({
-                where,
+                where: filteredWhere,
                 select: {
                     id: true,
                     amount: true,
