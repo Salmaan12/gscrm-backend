@@ -5,10 +5,11 @@ import { Expense } from 'src/entities/expense.entity';
 import { Product } from 'src/entities/product.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SharedModule } from 'src/shared/shared.module';
+import { InventorySnapshot } from 'src/entities/inventorysnapshot.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Expense,Product]),
+    TypeOrmModule.forFeature([Expense,Product,InventorySnapshot]),
     SharedModule
   ],
   controllers: [ExpenseController],

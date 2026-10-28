@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Put, Request, UseGuards, Delete, Query, ParseArrayPipe, ValidationPipe, UsePipes } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
-import { CreateUpdateInventory } from './inventory.dto';
+import { CreateUpdateInventory,PaginationDto } from './inventory.dto';
 import { Request as request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -28,10 +28,17 @@ export class InventoryController {
         return this._inventory.updateInventory(id, body, req);
     }
 
+    @Get('all/pagination')
+    @UseGuards(JwtAuthGuard)
+    @UsePipes(new ValidationPipe({ transform: true }))
+    getAllInventoriesWithPagination(@Query() params: PaginationDto, @Request() req: request) {
+        return this._inventory.getAllInventoriesWithPagination(params, req);
+    }
+
     @Get('getInventoryById/:id')
     @UseGuards(JwtAuthGuard)
     findInventoryById(@Param('id') id: string, @Request() req: request) {
-        return this._inventory.getInventoryById(id,req);
+        return this._inventory.getInventoryById(id, req);
     }
 
     @Delete('delete/:id')
@@ -44,6 +51,18 @@ export class InventoryController {
     @UseGuards(JwtAuthGuard)
     getInventorySnapshotByProduct(@Request() req: request) {
         return this._inventory.getInventorySnapshotByProduct(req);
+    }
+
+    @Get('getInventorySnapshotByBrand/:productid')
+    @UseGuards(JwtAuthGuard)
+    getInventorySnapshotByBrand(@Param('productid', ParseIntPipe) productid: number, @Request() req: request) {
+        return this._inventory.getInventorySnapshotByBrand(productid, req);
+    }
+
+    @Get('getInventorySnapshotBySKU/:brandid')
+    @UseGuards(JwtAuthGuard)
+    getInventorySnapshotBySKU(@Param('brandid', ParseIntPipe) brandid: number, @Request() req: request) {
+        return this._inventory.getInventorySnapshotBySKU(brandid, req);
     }
 
 }

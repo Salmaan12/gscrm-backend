@@ -31,3 +31,13 @@ export class CreateUpdateInventory {
     inventoryDate!: string;
 
 }
+
+export class PaginationDto {
+
+    @IsNotEmpty()
+    pageSize!: string;
+
+    @IsNotEmpty()
+    page!: string;
+
+}
