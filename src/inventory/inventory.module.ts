@@ -4,7 +4,7 @@ import { InventoryService } from './inventory.service';
 import { Inventory } from 'src/entities/inventory.entity';
 import { Product } from 'src/entities/product.entity';
 import { ProductBrand } from 'src/entities/product-brand.entity';
-// import { ProductBrandSku } from 'src/entities/product-brand-sku.entity';
+import { ProductBrandSku } from 'src/entities/product-brand-sku.entity';
 import { InventorySnapshot } from 'src/entities/inventorysnapshot.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SharedModule } from 'src/shared/shared.module';
@@ -13,7 +13,7 @@ import { SharedModule } from 'src/shared/shared.module';
   imports: [
     // TypeOrmModule.forFeature([Inventory,Product,ProductBrand,ProductBrandSku]),
     // TypeOrmModule.forFeature([Inventory]),
-    TypeOrmModule.forFeature([Inventory,Product,ProductBrand,InventorySnapshot]),
+    TypeOrmModule.forFeature([Inventory,Product,ProductBrand,ProductBrandSku,InventorySnapshot]),
     SharedModule
   ],
   controllers: [InventoryController],
