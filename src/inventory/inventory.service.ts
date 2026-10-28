@@ -15,11 +15,21 @@ import { IsNull, Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 
+import { Product } from 'src/entities/product.entity';
+import { ProductBrand } from 'src/entities/product-brand.entity';
+import { InventorySnapshot } from 'src/entities/inventorysnapshot.entity';
+
 @Injectable()
 export class InventoryService {
     constructor(
         @InjectRepository(Inventory)
         private readonly _inventoryRepo: Repository<Inventory>,
+        @InjectRepository(Product)
+        private readonly _productRepo: Repository<Product>,
+        @InjectRepository(ProductBrand)
+        private readonly _productBrandRepo: Repository<ProductBrand>,
+        @InjectRepository(InventorySnapshot)
+        private readonly _inventorySnapshotRepo: Repository<InventorySnapshot>,
         @Inject('RESPONSE-SERVICE') private res: ResponseService,
     ) { }
 
@@ -88,9 +98,18 @@ export class InventoryService {
         }
     }
 
-    async getInventoryById(inventoryId: string) {
-        const inventory = await this._inventoryRepo.findOneBy({ id: +inventoryId });
-        return inventory;
+    async getInventoryById(inventoryId: string, req: Request) {
+        try {
+            const inventory = await this._inventoryRepo.findOneBy({ id: +inventoryId });
+            return this.res.generateResponse(
+                HttpStatus.OK,
+                'Inventory Fetched Successfully',
+                inventory,
+                req,
+            );
+        } catch (error) {
+            return this.res.generateError(error, req);
+        }
     }
 
     async deleteInventoryById(id: number, req: Request) {
@@ -117,6 +136,68 @@ export class InventoryService {
 
             /// Return success message
             return this.res.generateResponse(HttpStatus.OK, "Inventory Deleted Successfully", [], req);
+        } catch (error) {
+            return this.res.generateError(error, req);
+        }
+    }
+
+    async getInventorySnapshotByProduct(req: Request) {
+        try {
+            const data = await this._productRepo
+                .createQueryBuilder('product')
+
+                // Aggregate inventory snapshots once, grouped by product
+                .leftJoin(
+                    (qb) =>
+                        qb
+                            .select('snapshot.productId', 'productId')
+                            .addSelect('SUM(snapshot.qty)', 'qty')
+                            .addSelect('SUM(snapshot.weight)', 'weight')
+                            .addSelect('SUM(snapshot.amount)', 'amount')
+                            .from(InventorySnapshot, 'snapshot')
+                            .groupBy('snapshot.productId'),
+                    'stock',
+                    'stock.productId = product.id',
+                )
+                .leftJoin(
+                    (qb) =>
+                        qb
+                            .select('brand.productId', 'productId')
+                            .from(ProductBrand, 'brand')
+                            .groupBy('brand.productId'),
+                    'brandProducts',
+                    'brandProducts.productId = product.id',
+                )
+                .select('product.id', 'productId')
+                .addSelect('product.name', 'productName')
+                .addSelect('COALESCE(stock.qty, 0)', 'qty')
+                .addSelect('COALESCE(stock.weight, 0)', 'weight')
+                .addSelect('COALESCE(stock.amount, 0)', 'amount')
+                .addSelect(
+                    `CASE
+                    WHEN brandProducts.productId IS NOT NULL THEN 1
+                    ELSE 0
+                    END`,
+                    'hasBrands',
+                )
+                .where('product.isActive = :isActive', { isActive: true })
+                .orderBy('product.id', 'ASC')
+                .getRawMany();
+
+            const inventorySnapshot = data.map((item) => ({
+                productId: Number(item.productId),
+                productName: item.productName,
+                qty: Number(item.qty),
+                weight: Number(item.weight),
+                amount: Number(item.amount),
+                hasBrands: Number(item.hasBrands) === 1,
+            }));
+            return this.res.generateResponse(
+                HttpStatus.OK,
+                'Inventory Snapshot Fetched Successfully',
+                inventorySnapshot,
+                req,
+            );
         } catch (error) {
             return this.res.generateError(error, req);
         }
