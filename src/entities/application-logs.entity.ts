@@ -10,6 +10,7 @@ export class ApplicationLogs {
     id!: number;
 
     @Column({
+        type: 'varchar', length: 500,
         nullable: false
     })
     message!: string;
@@ -21,6 +22,7 @@ export class ApplicationLogs {
     isError!: Boolean;
 
     @Column({
+        type: 'varchar', length: 255,
         nullable: false
     })
     route!: string;

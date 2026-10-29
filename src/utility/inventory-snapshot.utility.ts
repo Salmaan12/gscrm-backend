@@ -1,5 +1,6 @@
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { InventorySnapshot } from 'src/entities/inventorysnapshot.entity';
+
 
 export interface InventorySnapshotAdjustment {
     productId: number;
@@ -11,10 +12,11 @@ export interface InventorySnapshotAdjustment {
 }
 
 export async function adjustInventorySnapshot(
-    snapshotRepo: Repository<InventorySnapshot>,
+    manager: EntityManager,
     adjustment: InventorySnapshotAdjustment,
 ): Promise<InventorySnapshot> {
 
+    const snapshotRepo = manager.getRepository(InventorySnapshot);
     const {
         productId,
         productBrandId,
@@ -37,6 +39,9 @@ export async function adjustInventorySnapshot(
     // Find the snapshot using all three identifiers
     let snapshot = await snapshotRepo.findOne({
         where: where,
+        lock: {
+            mode: 'pessimistic_write',
+        },
     });
 
     if (!snapshot) {
