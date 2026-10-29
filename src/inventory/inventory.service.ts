@@ -11,7 +11,7 @@ import { Request } from 'express';
 import { CreateUpdateInventory, PaginationDto } from './inventory.dto';
 import { ResponseService } from 'src/shared/services/response.service';
 import { Inventory } from 'src/entities/inventory.entity';
-import { IsNull, Like, Repository } from 'typeorm';
+import { IsNull, Like, Repository, DataSource } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 
@@ -32,58 +32,61 @@ export class InventoryService {
         private readonly _productBrandRepo: Repository<ProductBrand>,
         @InjectRepository(ProductBrandSku)
         private readonly _productBrandSkuRepo: Repository<ProductBrandSku>,
-        @InjectRepository(InventorySnapshot)
-        private readonly _inventorySnapshotRepo: Repository<InventorySnapshot>,
         @Inject('RESPONSE-SERVICE') private res: ResponseService,
+        private readonly _dataSource: DataSource,
     ) { }
 
     async createInventory(body: CreateUpdateInventory, req: Request) {
         try {
-            const {
-                productId,
-                productBrandId,
-                productBrandSkuId,
-                skuWeight,
-                weight,
-                qty,
-                amount,
-                description,
-                inventoryDate,
-            } = body;
+            return await this._dataSource.transaction(async (manager) => {
+                // Use transaction-bound repositories
+                const inventoryRepo = manager.getRepository(Inventory);
+                const {
+                    productId,
+                    productBrandId,
+                    productBrandSkuId,
+                    skuWeight,
+                    weight,
+                    qty,
+                    amount,
+                    description,
+                    inventoryDate,
+                } = body;
 
 
-            const payload: Inventory | any = {
-                productId: productId,
-                productBrandId: productBrandId,
-                productBrandSkuId: productBrandSkuId,
-                skuWeight: skuWeight,
-                weight: weight,
-                qty: qty,
-                amount: amount,
-                description: description,
-                inventoryDate: inventoryDate,
-                inventoryDirection: 'IN',
-            };
+                const payload: Inventory | any = {
+                    productId: productId,
+                    productBrandId: productBrandId,
+                    productBrandSkuId: productBrandSkuId,
+                    skuWeight: skuWeight,
+                    weight: weight,
+                    qty: qty,
+                    amount: amount,
+                    description: description,
+                    inventoryDate: inventoryDate,
+                    inventoryDirection: 'IN',
+                };
 
-            const inventory = this._inventoryRepo.create(payload);
-            await this._inventoryRepo.save(inventory);
+                const inventory = inventoryRepo.create(payload);
+                await inventoryRepo.save(inventory);
 
-            ///Adjust Inventory Snapshot
-            await adjustInventorySnapshot(this._inventorySnapshotRepo, {
-                productId: productId,
-                productBrandId: productBrandId,
-                productBrandSkuId: productBrandSkuId,
-                weight: (weight == null || weight == undefined) ? undefined : Number(weight),
-                qty: (qty == null || qty == undefined) ? undefined : Number(qty),
-                amount: (amount == null || amount == undefined) ? undefined : Number(amount),
+                ///Adjust Inventory Snapshot
+                await adjustInventorySnapshot(manager, {
+                    productId: productId,
+                    productBrandId: productBrandId,
+                    productBrandSkuId: productBrandSkuId,
+                    weight: (weight == null || weight == undefined) ? undefined : Number(weight),
+                    qty: (qty == null || qty == undefined) ? undefined : Number(qty),
+                    amount: (amount == null || amount == undefined) ? undefined : Number(amount),
+                });
+
+                return this.res.generateResponse(
+                    200,
+                    'Inventory created successfully',
+                    inventory,
+                    req,
+                );
             });
-
-            return this.res.generateResponse(
-                200,
-                'Inventory created successfully',
-                inventory,
-                req,
-            );
         } catch (error) {
             return this.res.generateError(error || 'Something went wrong', req);
         }
@@ -91,29 +94,33 @@ export class InventoryService {
 
     async updateInventory(id: number, body: CreateUpdateInventory, req: Request) {
         try {
-            const findInventory = await this._inventoryRepo.findOneBy({ id: +id });
+            return await this._dataSource.transaction(async (manager) => {
+                // Use transaction-bound repositories
+                const inventoryRepo = manager.getRepository(Inventory);
+                const findInventory = await inventoryRepo.findOneBy({ id: +id });
 
-            if (!findInventory) {
-                throw new HttpException('Inventory not found', HttpStatus.NOT_FOUND);
-            }
-            const updateInventory = await this._inventoryRepo.update({ id }, body);
+                if (!findInventory) {
+                    throw new HttpException('Inventory not found', HttpStatus.NOT_FOUND);
+                }
+                const updateInventory = await inventoryRepo.update({ id }, body);
 
-            ///Adjust Inventory Snapshot
-            await adjustInventorySnapshot(this._inventorySnapshotRepo, {
-                productId: findInventory.productId,
-                productBrandId: findInventory.productBrandId,
-                productBrandSkuId: findInventory.productBrandSkuId,
-                weight: (findInventory.weight == null || findInventory.weight == undefined) ? undefined : (Number(body.weight) - Number(findInventory.weight)),
-                qty: (findInventory.qty == null || findInventory.qty == undefined) ? undefined : (Number(body.qty) - Number(findInventory.qty)),
-                amount: (findInventory.amount == null || findInventory.amount == undefined) ? undefined : (Number(body.amount) - Number(findInventory.amount)),
+                ///Adjust Inventory Snapshot
+                await adjustInventorySnapshot(manager, {
+                    productId: findInventory.productId,
+                    productBrandId: findInventory.productBrandId,
+                    productBrandSkuId: findInventory.productBrandSkuId,
+                    weight: (findInventory.weight == null || findInventory.weight == undefined) ? undefined : (Number(body.weight) - Number(findInventory.weight)),
+                    qty: (findInventory.qty == null || findInventory.qty == undefined) ? undefined : (Number(body.qty) - Number(findInventory.qty)),
+                    amount: (findInventory.amount == null || findInventory.amount == undefined) ? undefined : (Number(body.amount) - Number(findInventory.amount)),
+                });
+
+                return this.res.generateResponse(
+                    HttpStatus.OK,
+                    'Inventory Updated Successfully',
+                    updateInventory,
+                    req,
+                );
             });
-
-            return this.res.generateResponse(
-                HttpStatus.OK,
-                'Inventory Updated Successfully',
-                updateInventory,
-                req,
-            );
         } catch (error) {
             return this.res.generateError(error, req);
         }
@@ -135,36 +142,40 @@ export class InventoryService {
 
     async deleteInventoryById(id: number, req: Request) {
         try {
-            const inventoryentry = await this._inventoryRepo.findOneBy({ id: +id });
+            return await this._dataSource.transaction(async (manager) => {
+                // Use transaction-bound repositories
+                const inventoryRepo = manager.getRepository(Inventory);
+                const inventoryentry = await inventoryRepo.findOneBy({ id: +id });
 
-            if (!inventoryentry) {
-                throw new HttpException('Inventory not found', HttpStatus.NOT_FOUND);
-            }
+                if (!inventoryentry) {
+                    throw new HttpException('Inventory not found', HttpStatus.NOT_FOUND);
+                }
 
-            const updateinventoryentry = await this._inventoryRepo.createQueryBuilder('inventory')
-                .update()
-                .set({
-                    isDeleted: true,
-                    deleted_at: new Date()
-                })
-                .where('id = :id', { id })
-                .execute()
+                const updateinventoryentry = await inventoryRepo.createQueryBuilder('inventory')
+                    .update()
+                    .set({
+                        isDeleted: true,
+                        deleted_at: new Date()
+                    })
+                    .where('id = :id', { id })
+                    .execute()
 
-            // if inventory not update return error message
-            if (!updateinventoryentry.affected) throw new Error("Inventory Entry not updated, internal server issues");
+                // if inventory not update return error message
+                if (!updateinventoryentry.affected) throw new Error("Inventory Entry not updated, internal server issues");
 
-            ///Adjust Inventory Snapshot
-            await adjustInventorySnapshot(this._inventorySnapshotRepo, {
-                productId: inventoryentry.productId,
-                productBrandId: inventoryentry.productBrandId,
-                productBrandSkuId: inventoryentry.productBrandSkuId,
-                weight: (inventoryentry.weight == null || inventoryentry.weight == undefined) ? undefined : -Number(inventoryentry.weight),
-                qty: (inventoryentry.qty == null || inventoryentry.qty == undefined) ? undefined : -Number(inventoryentry.qty),
-                amount: (inventoryentry.amount == null || inventoryentry.amount == undefined) ? undefined : -Number(inventoryentry.amount),
+                ///Adjust Inventory Snapshot
+                await adjustInventorySnapshot(manager, {
+                    productId: inventoryentry.productId,
+                    productBrandId: inventoryentry.productBrandId,
+                    productBrandSkuId: inventoryentry.productBrandSkuId,
+                    weight: (inventoryentry.weight == null || inventoryentry.weight == undefined) ? undefined : -Number(inventoryentry.weight),
+                    qty: (inventoryentry.qty == null || inventoryentry.qty == undefined) ? undefined : -Number(inventoryentry.qty),
+                    amount: (inventoryentry.amount == null || inventoryentry.amount == undefined) ? undefined : -Number(inventoryentry.amount),
+                });
+
+                /// Return success message
+                return this.res.generateResponse(HttpStatus.OK, "Inventory Deleted Successfully", [], req);
             });
-
-            /// Return success message
-            return this.res.generateResponse(HttpStatus.OK, "Inventory Deleted Successfully", [], req);
         } catch (error) {
             return this.res.generateError(error, req);
         }
