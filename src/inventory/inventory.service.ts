@@ -62,6 +62,7 @@ export class InventoryService {
                 amount: amount,
                 description: description,
                 inventoryDate: inventoryDate,
+                inventoryDirection: 'IN',
             };
 
             const inventory = this._inventoryRepo.create(payload);
