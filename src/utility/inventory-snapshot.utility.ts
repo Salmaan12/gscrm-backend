@@ -24,16 +24,19 @@ export async function adjustInventorySnapshot(
         amount,
     } = adjustment;
 
+    const where: any = {
+        productId: productId,
+    };
+    if (productBrandId != null) {
+        where.productBrandId = productBrandId;
+    }
+    if (productBrandSkuId != null) {
+        where.productBrandSkuId = productBrandSkuId;
+    }
+
     // Find the snapshot using all three identifiers
     let snapshot = await snapshotRepo.findOne({
-        where: {
-            productId: productId,
-            productBrandId: productBrandId,
-            productBrandSkuId: productBrandSkuId,
-        },
-        lock: {
-            mode: 'pessimistic_write',
-        },
+        where: where,
     });
 
     if (!snapshot) {

@@ -26,9 +26,6 @@ export class InventorySnapshot {
     productBrandSkuId!: number;
 
     @Column({ type: 'varchar', length: 15 })
-    skuWeight!: string;
-
-    @Column({ type: 'varchar', length: 15 })
     weight!: string;
 
     @Column({ type: 'varchar', length: 10 })
