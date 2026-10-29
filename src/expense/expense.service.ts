@@ -15,8 +15,6 @@ import { IsNull, Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 import { Product } from 'src/entities/product.entity';
-import { InventorySnapshot } from 'src/entities/inventorysnapshot.entity';
-import { adjustInventorySnapshot } from '../utility/inventory-snapshot.utility';
 
 @Injectable()
 export class ExpenseService {
@@ -25,8 +23,6 @@ export class ExpenseService {
         private readonly _expenseRepo: Repository<Expense>,
         @InjectRepository(Product)
         private readonly _productRepo: Repository<Product>,
-        @InjectRepository(InventorySnapshot)
-        private readonly _inventorySnapshotRepo: Repository<InventorySnapshot>,
         @Inject('RESPONSE-SERVICE') private res: ResponseService,
     ) { }
 
@@ -57,12 +53,6 @@ export class ExpenseService {
             const expense = this._expenseRepo.create(payload);
             await this._expenseRepo.save(expense);
 
-            ///Adjust Inventory Snapshot
-            await adjustInventorySnapshot(this._inventorySnapshotRepo, {
-                productId: cashproduct.id,
-                amount: -Number(amount),
-            });
-
             return this.res.generateResponse(
                 200,
                 'Expense created successfully',
@@ -82,12 +72,6 @@ export class ExpenseService {
                 throw new HttpException('Expense not found', HttpStatus.NOT_FOUND);
             }
             const updateExpense = await this._expenseRepo.update({ id }, body);
-
-            ///Adjust Inventory Snapshot
-            await adjustInventorySnapshot(this._inventorySnapshotRepo, {
-                productId: findExpense.productId,
-                amount: (Number(findExpense.amount) - Number(body.amount)),
-            });
 
             return this.res.generateResponse(
                 HttpStatus.OK,
@@ -124,12 +108,6 @@ export class ExpenseService {
 
             // if expense not update return error message
             if (!updateexpenseentry.affected) throw new Error("Expense Entry not updated, internal server issues");
-
-            ///Adjust Inventory Snapshot
-            await adjustInventorySnapshot(this._inventorySnapshotRepo, {
-                productId: expenseentry.productId,
-                amount: Number(expenseentry.amount),
-            });
 
             /// Return success message
             return this.res.generateResponse(HttpStatus.OK, "Expense Deleted Successfully", [], req);

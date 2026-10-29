@@ -14,13 +14,15 @@ import { SalePoint } from 'src/entities/salepoint.entity';
 import { Between, In, IsNull, Like, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
-
+import { Expense } from 'src/entities/expense.entity';
 
 @Injectable()
 export class SalePointService {
   constructor(
     @InjectRepository(SalePoint)
     private readonly _salepointRepo: Repository<SalePoint>,
+    @InjectRepository(Expense)
+    private readonly _expenseRepo: Repository<Expense>,
     @Inject('RESPONSE-SERVICE') private res: ResponseService,
   ) { }
 
@@ -175,10 +177,48 @@ export class SalePointService {
         },
       });
 
+      const expenseEntries: Expense[] = [];
+
+      if (customerId == undefined) {
+        const whereforExpense: any = {
+          expenseDate: Between(start, end),
+          isDeleted: false,
+        };
+        const expenses = await this._expenseRepo.find({
+          where: whereforExpense,
+          select: {
+            id: true,
+            productId: true,
+            amount: true,
+            expenseType: true,
+            description: true,
+            expenseDate: true,
+            product: {
+              name: true,
+              id: true // Required by TypeORM to map relations properly
+            },
+          },
+          order: {
+            id: 'ASC',
+          },
+          relations: {
+            product: true,
+          },
+        });
+        for (const expense of expenses) {
+          expenseEntries.push(expense);
+        }
+      }
+
+      const response = {
+        salePointEntries: salepointentries,
+        expenseEntries: expenseEntries,
+      };
+
       return this.res.generateResponse(
         HttpStatus.OK,
         'Sale Point Entries retrieved successfully',
-        salepointentries,
+        response,
         req,
       );
     } catch (error) {
