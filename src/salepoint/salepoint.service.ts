@@ -177,6 +177,11 @@ export class SalePointService {
         },
       });
 
+      const result = salepointentries.map(entry => ({
+          ...entry,
+          totalgm:(entry.productType == "LAB" || entry.productType == "GINNI") ? Number(entry.weight ?? 0) : Number(entry.qty ?? 0) * Number(entry.weight ?? 0),
+      }));
+
       const expenseEntries: Expense[] = [];
 
       if (customerId == undefined) {
@@ -211,7 +216,7 @@ export class SalePointService {
       }
 
       const response = {
-        salePointEntries: salepointentries,
+        salePointEntries: result,
         expenseEntries: expenseEntries,
       };
 
