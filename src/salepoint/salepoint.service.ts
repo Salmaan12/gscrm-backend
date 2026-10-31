@@ -179,7 +179,7 @@ export class SalePointService {
 
       const result = salepointentries.map(entry => ({
           ...entry,
-          totalgm:(entry.productType == "LAB" || entry.productType == "GINNI") ? Number(entry.weight ?? 0) : Number(entry.qty ?? 0) * Number(entry.weight ?? 0),
+          totalgm:(entry.productType == "LAB" || entry.productType == "GINNI" || entry.productType == "PC") ? Number(entry.weight ?? 0) : Number(entry.qty ?? 0) * Number(entry.weight ?? 0),
       }));
 
       const expenseEntries: Expense[] = [];
