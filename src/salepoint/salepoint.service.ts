@@ -216,7 +216,7 @@ export class SalePointService {
       }
 
       const response = {
-        salePointEntries: salepointentries,
+        salePointEntries: result,
         expenseEntries: expenseEntries,
       };
 
