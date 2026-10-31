@@ -320,4 +320,100 @@ export class SalePointService {
     }
   }
 
+  async getAllSalePointEntiriesForCustomerledger(params: SalePointDto, req: Request) {
+    try {
+      const { startDate, endDate, customerId, referenceNo } = params;
+
+      if ((startDate ?? '') == '' || (endDate ?? '') == '') {
+        return this.res.generateError('Start & End Dates are required to extract Sale Point Entries.', req);
+      }
+
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      const where: any = {
+        recordcreated_at: Between(start, end),
+        // transactionCategory: Not(In(['Bill Received', 'Bill Given'])),
+        // productType: Not('RateWork'),
+      };
+      where.isDeleted = false;
+
+      if (customerId !== undefined) {
+        where.customerId = customerId;
+      }
+
+      if (referenceNo !== undefined) {
+        where.referenceNo = referenceNo;
+      }
+
+
+      const salepointentries = await this._salepointRepo.find({
+        where,
+        select: {
+          id: true,
+          referenceNo: true,
+          customerId: true,
+          productId: true,
+          productBrandId: true,
+          productBrandSkuId: true,
+          transactionCategory: true,
+          report: true,
+          weight: true,
+          pureWeight: true,
+          qty: true,
+          amount: true,
+          difference: true,
+          differenceTotal: true,
+          making: true,
+          makingTotal: true,
+          refining: true,
+          refiningTotal: true,
+          karat: true,
+          rate: true,
+          status: true,
+          recordcreated_at: true,
+          productType: true,
+          descriptionNote: true,
+          customer: {
+            customerName: true,
+            id: true // Required by TypeORM to map relations properly
+          },
+          product: {
+            name: true,
+            id: true // Required by TypeORM to map relations properly
+          },
+          productBrand: {
+            name: true,
+            id: true // Required by TypeORM to map relations properly
+          },
+          productBrandSku: {
+            name: true,
+            id: true // Required by TypeORM to map relations properly
+          }
+        },
+        relations: {
+          customer: true,
+          product: true,
+          productBrand: true,
+          productBrandSku: true
+        },
+        order: {
+          id: 'ASC',
+        },
+      });
+
+      return this.res.generateResponse(
+        HttpStatus.OK,
+        'Sale Point Entries retrieved successfully',
+        salepointentries,
+        req,
+      );
+    } catch (error) {
+      return this.res.generateError(error || 'Something went wrong', req);
+    }
+  }
+
 }

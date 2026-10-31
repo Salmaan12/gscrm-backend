@@ -40,4 +40,12 @@ export class SalePointController {
         return this._salepoint.deleteSalePointEntryById(id,req);
     }
 
+    @Get('all/customerledger')
+    @UseGuards(JwtAuthGuard)
+    @UsePipes(new ValidationPipe({ transform: true }))
+    getAllSalePointEntiriesForCustomerledger(@Query() params: SalePointDto, @Request() req: request){
+        return this._salepoint.getAllSalePointEntiriesForCustomerledger(params, req);
+    }
+    
+
 }
