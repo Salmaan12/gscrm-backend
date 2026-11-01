@@ -431,6 +431,7 @@ export class SalePointService {
         const salepointRepo = manager.getRepository(SalePoint);
         const dailyreportsnapshotRepo = manager.getRepository(DailyReportSnapshot);
         const productRepo = manager.getRepository(Product);
+        const expenseRepo = manager.getRepository(Expense);
 
         // Prevent submitting the same report date twice.
         const existingReport = await dailyreportsnapshotRepo.findOne({
@@ -489,7 +490,33 @@ export class SalePointService {
           },
         });
 
-        if (salepointentries.length == 0) {
+        const whereforExpense: any = {
+          expenseDate: Between(start, end),
+          isDeleted: false,
+        };
+        const expenses = await expenseRepo.find({
+          where: whereforExpense,
+          select: {
+            id: true,
+            productId: true,
+            amount: true,
+            expenseType: true,
+            description: true,
+            expenseDate: true,
+            product: {
+              name: true,
+              id: true // Required by TypeORM to map relations properly
+            },
+          },
+          order: {
+            id: 'ASC',
+          },
+          relations: {
+            product: true,
+          },
+        });
+
+        if (salepointentries.length == 0 && expenses.length == 0) {
           return this.res.generateError('No Entries Found for this date to submit Daily Report.', req);
         }
 
@@ -555,6 +582,37 @@ export class SalePointService {
           amount: number;
         }>();
 
+        for (const entry of expenses) {
+          const key = getSnapshotKey(
+            entry.productId,
+            null,
+            null,
+          );
+
+          const multiplier = -1;
+
+          // Get or initialize aggregate
+          let adjustment = adjustmentMap.get(key);
+
+          if (!adjustment) {
+            adjustment = {
+              productId: entry.productId,
+              productBrandId: null,
+              productBrandSkuId: null,
+              qty: 0,
+              weight: 0,
+              amount: 0,
+            };
+
+            adjustmentMap.set(key, adjustment);
+          }
+
+          const amount = Number(entry.amount ?? 0);
+
+          // Apply transaction-specific adjustment
+          adjustment.amount += amount * multiplier;
+        }
+
         for (const entry of salepointentries) {
 
           // Determine product type
@@ -597,8 +655,8 @@ export class SalePointService {
           if (!adjustment) {
             adjustment = {
               productId: isCashableproductType ? cashproduct.id : entry.productId,
-              productBrandId:  isCashableproductType ? null : (entry.productBrandId ?? null),
-              productBrandSkuId:  isCashableproductType ? null : (entry.productBrandSkuId ?? null),
+              productBrandId: isCashableproductType ? null : (entry.productBrandId ?? null),
+              productBrandSkuId: isCashableproductType ? null : (entry.productBrandSkuId ?? null),
               qty: 0,
               weight: 0,
               amount: 0,
