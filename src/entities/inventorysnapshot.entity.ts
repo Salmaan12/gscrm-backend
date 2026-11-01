@@ -25,7 +25,7 @@ export class InventorySnapshot {
     @Column({ nullable: true })
     productBrandSkuId!: number;
 
-    @Column({ type: 'varchar', length: 15 })
+    @Column({ type: 'varchar', length: 50 })
     weight!: string;
 
     @Column({ type: 'varchar', length: 10 })
