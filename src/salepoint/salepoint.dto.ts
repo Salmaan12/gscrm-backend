@@ -89,3 +89,11 @@ export class SalePointDto {
     referenceNo!: number;
 
 }
+
+export class DailyReportSubmitDto {
+
+    @IsNotEmpty()
+    @IsDateString() 
+    dailyreportDate!: string;
+
+}

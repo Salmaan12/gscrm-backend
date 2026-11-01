@@ -12,6 +12,7 @@ import { SalePoint } from './salepoint.entity';
 import { Inventory } from './inventory.entity';
 import { Expense } from './expense.entity';
 import { InventorySnapshot } from './inventorysnapshot.entity';
+import { DailyReportSnapshot } from './dailyreportsnapshot.entity';
 
 @Entity('product')
 export class Product {
@@ -50,4 +51,7 @@ export class Product {
 
   @OneToMany(() => InventorySnapshot, (inventorysnapshot) => inventorysnapshot.product)
   inventorysnapshot!: InventorySnapshot[];
+
+  @OneToMany(() => DailyReportSnapshot, (dailyreportsnapshot) => dailyreportsnapshot.product)
+  dailyreportsnapshot!: DailyReportSnapshot[];
 }
