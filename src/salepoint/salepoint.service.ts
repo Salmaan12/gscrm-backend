@@ -26,6 +26,8 @@ export class SalePointService {
     private readonly _salepointRepo: Repository<SalePoint>,
     @InjectRepository(Expense)
     private readonly _expenseRepo: Repository<Expense>,
+    @InjectRepository(DailyReportSnapshot)
+    private readonly _dailyreportsnapshotRepo: Repository<DailyReportSnapshot>,
     @Inject('RESPONSE-SERVICE') private res: ResponseService,
     private readonly _dataSource: DataSource,
   ) { }
@@ -33,6 +35,22 @@ export class SalePointService {
   async createSalePointEntiries(body: CreateSalePoint[], req: Request) {
     try {
       if (body.length > 0) {
+        const recordcreated_at = body.at(0)?.recordcreated_at ?? new Date();
+        recordcreated_at.setHours(0, 0, 0, 0);
+        // Prevent submitting the same report date twice.
+        const existingReport = await this._dailyreportsnapshotRepo.findOne({
+          where: {
+            dailyreportDate: recordcreated_at as any,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (existingReport) {
+          return this.res.generateError('Daily Report has already been submitted for this date', req);
+        }
+
         const referenceNo = body.at(0)?.referenceNo;
         const checkSalePointEntriesAlreadyExists: SalePoint[] = await this._salepointRepo
           .createQueryBuilder('salepoint')
