@@ -430,6 +430,7 @@ export class SalePointService {
         const inventorysnapshotRepo = manager.getRepository(InventorySnapshot);
         const salepointRepo = manager.getRepository(SalePoint);
         const dailyreportsnapshotRepo = manager.getRepository(DailyReportSnapshot);
+        const productRepo = manager.getRepository(Product);
 
         // Prevent submitting the same report date twice.
         const existingReport = await dailyreportsnapshotRepo.findOne({
@@ -443,6 +444,12 @@ export class SalePointService {
 
         if (existingReport) {
           return this.res.generateError('Daily Report has already been submitted for this date', req);
+        }
+
+        const cashproduct = await productRepo.findOneBy({ name: 'CASH' });
+
+        if (!cashproduct) {
+          return this.res.generateError('Product cash doesn\'t exists coudn\'t able to submit Daily Report', req);
         }
 
         const start = new Date(dailyreportDate);
@@ -468,6 +475,7 @@ export class SalePointService {
             productBrandId: true,
             productBrandSkuId: true,
             transactionCategory: true,
+            productType: true,
             weight: true,
             qty: true,
             amount: true,
@@ -547,19 +555,19 @@ export class SalePointService {
           amount: number;
         }>();
 
-        const cashProductTypes = [
-          'TESTING',
-          'REFINING',
-          'DIFFERENCE',
-          'MAKING',
-        ];
-
         for (const entry of salepointentries) {
 
+          // Determine product type
+          const productType = String(
+            entry.productType ?? '',
+          ).toUpperCase();
+
+          const isCashableproductType = /TESTING|MAKING|REFINING|DIFFERENCE/.test(productType);
+
           const key = getSnapshotKey(
-            entry.productId,
-            entry.productBrandId,
-            entry.productBrandSkuId,
+            isCashableproductType ? cashproduct.id : entry.productId,
+            isCashableproductType ? null : entry.productBrandId,
+            isCashableproductType ? null : entry.productBrandSkuId,
           );
 
           // Determine transaction direction
@@ -574,28 +582,23 @@ export class SalePointService {
             continue;
           }
 
-          // Determine product type
-          const productType = String(
-            entry.productType ?? '',
-          ).trim().toUpperCase();
-
           const productName = String(
             entry.product?.name ?? '',
-          ).trim().toUpperCase();
+          ).toUpperCase();
+
+
 
           // Cash-based entries
-          const isCash =
-            productName === 'CASH' ||
-            cashProductTypes.some(type => productType.includes(type));
+          const isCash = productName === 'CASH' || isCashableproductType;
 
           // Get or initialize aggregate
           let adjustment = adjustmentMap.get(key);
 
           if (!adjustment) {
             adjustment = {
-              productId: entry.productId,
-              productBrandId: entry.productBrandId ?? null,
-              productBrandSkuId: entry.productBrandSkuId ?? null,
+              productId: isCashableproductType ? cashproduct.id : entry.productId,
+              productBrandId:  isCashableproductType ? null : (entry.productBrandId ?? null),
+              productBrandSkuId:  isCashableproductType ? null : (entry.productBrandSkuId ?? null),
               qty: 0,
               weight: 0,
               amount: 0,
@@ -618,7 +621,7 @@ export class SalePointService {
             productName === 'GINNI'
           ) {
 
-            adjustment.weight += weight * multiplier;
+            adjustment.weight += Number((weight * multiplier).toFixed(3));
 
           } else if (
             productName === 'COIN' ||
@@ -626,12 +629,12 @@ export class SalePointService {
           ) {
 
             adjustment.qty += qty * multiplier;
-            adjustment.weight += (qty * weight) * multiplier;
+            adjustment.weight += Number(((qty * weight) * multiplier).toFixed(3));
 
           } else if (productName === 'PC') {
 
             adjustment.qty += qty * multiplier;
-            adjustment.weight += weight * multiplier;
+            adjustment.weight += Number((weight * multiplier).toFixed(3));
           }
         }
 
@@ -661,7 +664,7 @@ export class SalePointService {
             Number(snapshot.qty ?? 0) + adjustment.qty);
 
           snapshot.weight = String(
-            Number(snapshot.weight ?? 0) + adjustment.weight);
+            (Number(snapshot.weight ?? 0) + adjustment.weight).toFixed(3));
 
           snapshot.amount = String(
             Number(snapshot.amount ?? 0) + adjustment.amount);
@@ -682,6 +685,8 @@ export class SalePointService {
             totalSalePointEntries: salepointentries.length,
             updatedInventorySnapshots: updatedSnapshots.length,
             dailyReportSnapshots: dailyReportSnapshots.length,
+            //adjustmentMap: Array.from(adjustmentMap.values()),
+            //updatedSnapshots: updatedSnapshots
           },
           req,
         );
