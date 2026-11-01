@@ -13,6 +13,7 @@ import { CurrentRateProductBrandSku } from './current-rate-product-brand-sku.ent
 import { SalePoint } from './salepoint.entity';
 import { Inventory } from './inventory.entity';
 import { InventorySnapshot } from './inventorysnapshot.entity';
+import { DailyReportSnapshot } from './dailyreportsnapshot.entity';
 
 @Entity('product_brand')
 export class ProductBrand {
@@ -52,6 +53,9 @@ export class ProductBrand {
   @OneToMany(() => Inventory, (inventory) => inventory.productBrand)
   inventory!: Inventory[];
 
-  @OneToMany(() => InventorySnapshot, (inventorysnapshot) => inventorysnapshot.product)
+  @OneToMany(() => InventorySnapshot, (inventorysnapshot) => inventorysnapshot.productBrand)
   inventorysnapshot!: InventorySnapshot[];
+
+  @OneToMany(() => DailyReportSnapshot, (dailyreportsnapshot) => dailyreportsnapshot.productBrand)
+  dailyreportsnapshot!: DailyReportSnapshot[];
 }

@@ -14,6 +14,7 @@ import { Ratework } from './ratework.entity';
 import { SalePoint } from './salepoint.entity';
 import { Inventory } from './inventory.entity';
 import { InventorySnapshot } from './inventorysnapshot.entity';
+import { DailyReportSnapshot } from './dailyreportsnapshot.entity';
 
 @Entity('product_brand_sku')
 export class ProductBrandSku {
@@ -63,7 +64,10 @@ export class ProductBrandSku {
   @OneToMany(() => Inventory, (inventory) => inventory.productBrandSku)
   inventory!: Inventory[];
 
-  @OneToMany(() => InventorySnapshot, (inventorysnapshot) => inventorysnapshot.product)
+  @OneToMany(() => InventorySnapshot, (inventorysnapshot) => inventorysnapshot.productBrandSku)
   inventorysnapshot!: InventorySnapshot[];
+
+  @OneToMany(() => DailyReportSnapshot, (dailyreportsnapshot) => dailyreportsnapshot.productBrandSku)
+  dailyreportsnapshot!: DailyReportSnapshot[];
   
 }
