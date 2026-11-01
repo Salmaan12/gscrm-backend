@@ -15,6 +15,7 @@ import { IsNull, Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 import { Product } from 'src/entities/product.entity';
+import { DailyReportSnapshot } from 'src/entities/dailyreportsnapshot.entity';
 
 @Injectable()
 export class ExpenseService {
@@ -23,6 +24,8 @@ export class ExpenseService {
         private readonly _expenseRepo: Repository<Expense>,
         @InjectRepository(Product)
         private readonly _productRepo: Repository<Product>,
+        @InjectRepository(DailyReportSnapshot)
+        private readonly _dailyreportsnapshotRepo: Repository<DailyReportSnapshot>,
         @Inject('RESPONSE-SERVICE') private res: ResponseService,
     ) { }
 
@@ -36,9 +39,26 @@ export class ExpenseService {
             } = body;
 
             const cashproduct = await this._productRepo.findOneBy({ name: 'CASH' });
-    
+
             if (!cashproduct) {
                 return this.res.generateError('Product cash doesn\'t exists coudn\'t able to create a Expense record', req);
+            }
+
+
+            const start = new Date(expenseDate);
+            start.setHours(0, 0, 0, 0);
+            // Prevent submitting the same report date twice.
+            const existingReport = await this._dailyreportsnapshotRepo.findOne({
+                where: {
+                    dailyreportDate: start as any,
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+            if (existingReport) {
+                return this.res.generateError('Daily Report has already been submitted for this date', req);
             }
 
 
