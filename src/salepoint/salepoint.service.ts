@@ -8,10 +8,22 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { CreateSalePoint, DailyReportSubmitDto, SalePointDto } from './salepoint.dto';
+import {
+  CreateSalePoint,
+  DailyReportSubmitDto,
+  SalePointDto,
+} from './salepoint.dto';
 import { ResponseService } from 'src/shared/services/response.service';
 import { SalePoint } from 'src/entities/salepoint.entity';
-import { Between, DataSource, In, IsNull, Like, Not, Repository } from 'typeorm';
+import {
+  Between,
+  DataSource,
+  In,
+  IsNull,
+  Like,
+  Not,
+  Repository,
+} from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 import { Expense } from 'src/entities/expense.entity';
@@ -30,13 +42,19 @@ export class SalePointService {
     private readonly _dailyreportsnapshotRepo: Repository<DailyReportSnapshot>,
     @Inject('RESPONSE-SERVICE') private res: ResponseService,
     private readonly _dataSource: DataSource,
-  ) { }
+  ) {}
 
   async createSalePointEntiries(body: CreateSalePoint[], req: Request) {
     try {
       if (body.length > 0) {
-        const recordcreated_at = body.at(0)?.recordcreated_at ?? new Date();
+        // const recordcreated_at = body.at(0)?.recordcreated_at ?? new Date();
+        // recordcreated_at.setHours(0, 0, 0, 0);
+
+        const recordcreated_at = new Date(body.at(0)?.recordcreated_at ?? Date.now());
+
+        //const startOfDay = new Date(recordcreated_at);
         recordcreated_at.setHours(0, 0, 0, 0);
+
         // Prevent submitting the same report date twice.
         const existingReport = await this._dailyreportsnapshotRepo.findOne({
           where: {
@@ -48,47 +66,53 @@ export class SalePointService {
         });
 
         if (existingReport) {
-          return this.res.generateError('Daily Report has already been submitted for this date', req);
+          return this.res.generateError(
+            'Daily Report has already been submitted for this date',
+            req,
+          );
         }
 
         const referenceNo = body.at(0)?.referenceNo;
-        const checkSalePointEntriesAlreadyExists: SalePoint[] = await this._salepointRepo
-          .createQueryBuilder('salepoint')
-          .where(
-            'salepoint.referenceNo = :referenceNo',
-            { referenceNo },
-          )
-          .execute();
+        const checkSalePointEntriesAlreadyExists: SalePoint[] =
+          await this._salepointRepo
+            .createQueryBuilder('salepoint')
+            .where('salepoint.referenceNo = :referenceNo', { referenceNo })
+            .execute();
 
         if (checkSalePointEntriesAlreadyExists.length > 0) {
-          return this.res.generateError('SalePoint Entries already exists against Reference Number', req);
+          return this.res.generateError(
+            'SalePoint Entries already exists against Reference Number',
+            req,
+          );
         }
 
-        const payload: SalePoint[] = body.map(item => ({
-          referenceNo: item.referenceNo,
-          customerId: item.customerId,
-          productId: item.productId,
-          productBrandId: item.productBrandId,
-          productBrandSkuId: item.productBrandSkuId,
-          transactionCategory: item.transactionCategory,
-          report: item.report,
-          weight: item.weight,
-          pureWeight: item.pureWeight,
-          qty: item.qty,
-          amount: item.amount,
-          difference: item.difference,
-          differenceTotal: item.differenceTotal,
-          making: item.making,
-          makingTotal: item.makingTotal,
-          refining: item.refining,
-          refiningTotal: item.refiningTotal,
-          karat: item.karat,
-          rate: item.rate,
-          status: item.status,
-          recordcreated_at: item.recordcreated_at,
-          productType: item.productType,
-          descriptionNote: item.descriptionNote
-        } as SalePoint)
+        const payload: SalePoint[] = body.map(
+          (item) =>
+            ({
+              referenceNo: item.referenceNo,
+              customerId: item.customerId,
+              productId: item.productId,
+              productBrandId: item.productBrandId,
+              productBrandSkuId: item.productBrandSkuId,
+              transactionCategory: item.transactionCategory,
+              report: item.report,
+              weight: item.weight,
+              pureWeight: item.pureWeight,
+              qty: item.qty,
+              amount: item.amount,
+              difference: item.difference,
+              differenceTotal: item.differenceTotal,
+              making: item.making,
+              makingTotal: item.makingTotal,
+              refining: item.refining,
+              refiningTotal: item.refiningTotal,
+              karat: item.karat,
+              rate: item.rate,
+              status: item.status,
+              recordcreated_at: item.recordcreated_at,
+              productType: item.productType,
+              descriptionNote: item.descriptionNote,
+            }) as SalePoint,
         );
 
         const salepointentries = this._salepointRepo.create(payload);
@@ -100,8 +124,7 @@ export class SalePointService {
           null,
           req,
         );
-      }
-      else {
+      } else {
         return this.res.generateResponse(
           200,
           'No Sale Point Entries created',
@@ -119,7 +142,10 @@ export class SalePointService {
       const { startDate, endDate, customerId, referenceNo } = params;
 
       if ((startDate ?? '') == '' || (endDate ?? '') == '') {
-        return this.res.generateError('Start & End Dates are required to extract Sale Point Entries.', req);
+        return this.res.generateError(
+          'Start & End Dates are required to extract Sale Point Entries.',
+          req,
+        );
       }
 
       const start = new Date(startDate);
@@ -142,7 +168,6 @@ export class SalePointService {
       if (referenceNo !== undefined) {
         where.referenceNo = referenceNo;
       }
-
 
       const salepointentries = await this._salepointRepo.find({
         where,
@@ -173,35 +198,40 @@ export class SalePointService {
           descriptionNote: true,
           customer: {
             customerName: true,
-            id: true // Required by TypeORM to map relations properly
+            id: true, // Required by TypeORM to map relations properly
           },
           product: {
             name: true,
-            id: true // Required by TypeORM to map relations properly
+            id: true, // Required by TypeORM to map relations properly
           },
           productBrand: {
             name: true,
-            id: true // Required by TypeORM to map relations properly
+            id: true, // Required by TypeORM to map relations properly
           },
           productBrandSku: {
             name: true,
-            id: true // Required by TypeORM to map relations properly
-          }
+            id: true, // Required by TypeORM to map relations properly
+          },
         },
         relations: {
           customer: true,
           product: true,
           productBrand: true,
-          productBrandSku: true
+          productBrandSku: true,
         },
         order: {
           id: 'ASC',
         },
       });
 
-      const result = salepointentries.map(entry => ({
+      const result = salepointentries.map((entry) => ({
         ...entry,
-        totalgm: (entry.productType.toLowerCase() == "lab" || entry.productType.toLowerCase() == "ginni" || entry.productType.toLowerCase() == "pc") ? Number(entry.weight ?? 0) : (Number(entry.qty ?? 0) * Number(entry.weight ?? 0)),
+        totalgm:
+          entry.productType.toLowerCase() == 'lab' ||
+          entry.productType.toLowerCase() == 'ginni' ||
+          entry.productType.toLowerCase() == 'pc'
+            ? Number(entry.weight ?? 0)
+            : Number(entry.qty ?? 0) * Number(entry.weight ?? 0),
       }));
 
       const expenseEntries: Expense[] = [];
@@ -222,7 +252,7 @@ export class SalePointService {
             expenseDate: true,
             product: {
               name: true,
-              id: true // Required by TypeORM to map relations properly
+              id: true, // Required by TypeORM to map relations properly
             },
           },
           order: {
@@ -256,7 +286,7 @@ export class SalePointService {
   async findSalePointEntiriesByReferenceNo(referenceNo: string) {
     const where: any = {
       referenceNo: referenceNo,
-      isDeleted: false
+      isDeleted: false,
     };
     const salepointentries = await this._salepointRepo.find({
       where,
@@ -287,26 +317,26 @@ export class SalePointService {
         descriptionNote: true,
         customer: {
           customerName: true,
-          id: true // Required by TypeORM to map relations properly
+          id: true, // Required by TypeORM to map relations properly
         },
         product: {
           name: true,
-          id: true // Required by TypeORM to map relations properly
+          id: true, // Required by TypeORM to map relations properly
         },
         productBrand: {
           name: true,
-          id: true // Required by TypeORM to map relations properly
+          id: true, // Required by TypeORM to map relations properly
         },
         productBrandSku: {
           name: true,
-          id: true // Required by TypeORM to map relations properly
-        }
+          id: true, // Required by TypeORM to map relations properly
+        },
       },
       relations: {
         customer: true,
         product: true,
         productBrand: true,
-        productBrandSku: true
+        productBrandSku: true,
       },
       order: {
         id: 'ASC',
@@ -317,37 +347,55 @@ export class SalePointService {
 
   async deleteSalePointEntryById(id: number, req: Request) {
     try {
-      const findsalepointentry = await this._salepointRepo.findOneBy({ id: +id });
+      const findsalepointentry = await this._salepointRepo.findOneBy({
+        id: +id,
+      });
 
       if (!findsalepointentry) {
-        throw new HttpException('Sale Point Entry not found', HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          'Sale Point Entry not found',
+          HttpStatus.NOT_FOUND,
+        );
       }
 
-      const updatesalepointentry = await this._salepointRepo.createQueryBuilder('salepoint')
+      const updatesalepointentry = await this._salepointRepo
+        .createQueryBuilder('salepoint')
         .update()
         .set({
           isDeleted: true,
-          deleted_at: new Date()
+          deleted_at: new Date(),
         })
         .where('id = :id', { id })
-        .execute()
+        .execute();
 
       // if product not update return error message
-      if (!updatesalepointentry.affected) throw new Error("Sale Point Entry not updated, internal server issues");
+      if (!updatesalepointentry.affected)
+        throw new Error('Sale Point Entry not updated, internal server issues');
 
       /// Return success message
-      return this.res.generateResponse(HttpStatus.OK, "Sale Point Entry Deleted Successfully", [], req);
+      return this.res.generateResponse(
+        HttpStatus.OK,
+        'Sale Point Entry Deleted Successfully',
+        [],
+        req,
+      );
     } catch (error) {
       return this.res.generateError(error, req);
     }
   }
 
-  async getAllSalePointEntiriesForCustomerledger(params: SalePointDto, req: Request) {
+  async getAllSalePointEntiriesForCustomerledger(
+    params: SalePointDto,
+    req: Request,
+  ) {
     try {
       const { startDate, endDate, customerId, referenceNo } = params;
 
       if ((startDate ?? '') == '' || (endDate ?? '') == '') {
-        return this.res.generateError('Start & End Dates are required to extract Sale Point Entries.', req);
+        return this.res.generateError(
+          'Start & End Dates are required to extract Sale Point Entries.',
+          req,
+        );
       }
 
       const start = new Date(startDate);
@@ -370,7 +418,6 @@ export class SalePointService {
       if (referenceNo !== undefined) {
         where.referenceNo = referenceNo;
       }
-
 
       const salepointentries = await this._salepointRepo.find({
         where,
@@ -401,26 +448,26 @@ export class SalePointService {
           descriptionNote: true,
           customer: {
             customerName: true,
-            id: true // Required by TypeORM to map relations properly
+            id: true, // Required by TypeORM to map relations properly
           },
           product: {
             name: true,
-            id: true // Required by TypeORM to map relations properly
+            id: true, // Required by TypeORM to map relations properly
           },
           productBrand: {
             name: true,
-            id: true // Required by TypeORM to map relations properly
+            id: true, // Required by TypeORM to map relations properly
           },
           productBrandSku: {
             name: true,
-            id: true // Required by TypeORM to map relations properly
-          }
+            id: true, // Required by TypeORM to map relations properly
+          },
         },
         relations: {
           customer: true,
           product: true,
           productBrand: true,
-          productBrandSku: true
+          productBrandSku: true,
         },
         order: {
           id: 'ASC',
@@ -442,12 +489,16 @@ export class SalePointService {
     try {
       const { dailyreportDate } = params;
       if ((dailyreportDate ?? '') == '') {
-        return this.res.generateError('Daily Report Date is required to submit Daily Report', req);
+        return this.res.generateError(
+          'Daily Report Date is required to submit Daily Report',
+          req,
+        );
       }
       return await this._dataSource.transaction(async (manager) => {
         const inventorysnapshotRepo = manager.getRepository(InventorySnapshot);
         const salepointRepo = manager.getRepository(SalePoint);
-        const dailyreportsnapshotRepo = manager.getRepository(DailyReportSnapshot);
+        const dailyreportsnapshotRepo =
+          manager.getRepository(DailyReportSnapshot);
         const productRepo = manager.getRepository(Product);
         const expenseRepo = manager.getRepository(Expense);
 
@@ -462,13 +513,19 @@ export class SalePointService {
         });
 
         if (existingReport) {
-          return this.res.generateError('Daily Report has already been submitted for this date', req);
+          return this.res.generateError(
+            'Daily Report has already been submitted for this date',
+            req,
+          );
         }
 
         const cashproduct = await productRepo.findOneBy({ name: 'CASH' });
 
         if (!cashproduct) {
-          return this.res.generateError('Product cash doesn\'t exists coudn\'t able to submit Daily Report', req);
+          return this.res.generateError(
+            "Product cash doesn't exists coudn't able to submit Daily Report",
+            req,
+          );
         }
 
         const start = new Date(dailyreportDate);
@@ -500,7 +557,7 @@ export class SalePointService {
             amount: true,
             product: {
               name: true,
-              id: true // Required by TypeORM to map relations properly
+              id: true, // Required by TypeORM to map relations properly
             },
           },
           relations: {
@@ -523,7 +580,7 @@ export class SalePointService {
             expenseDate: true,
             product: {
               name: true,
-              id: true // Required by TypeORM to map relations properly
+              id: true, // Required by TypeORM to map relations properly
             },
           },
           order: {
@@ -535,7 +592,10 @@ export class SalePointService {
         });
 
         if (salepointentries.length == 0 && expenses.length == 0) {
-          return this.res.generateError('No Entries Found for this date to submit Daily Report.', req);
+          return this.res.generateError(
+            'No Entries Found for this date to submit Daily Report.',
+            req,
+          );
         }
 
         const inventorysnapshotentries = await inventorysnapshotRepo.find({
@@ -553,7 +613,7 @@ export class SalePointService {
           },
         });
 
-        const dailyReportSnapshots = inventorysnapshotentries.map(snapshot =>
+        const dailyReportSnapshots = inventorysnapshotentries.map((snapshot) =>
           dailyreportsnapshotRepo.create({
             productId: snapshot.productId,
             productBrandId: snapshot.productBrandId,
@@ -574,7 +634,8 @@ export class SalePointService {
           productId: number,
           productBrandId: number | null,
           productBrandSkuId: number | null,
-        ) => `${productId}_${productBrandId ?? 'NULL'}_${productBrandSkuId ?? 'NULL'}`;
+        ) =>
+          `${productId}_${productBrandId ?? 'NULL'}_${productBrandSkuId ?? 'NULL'}`;
 
         // Map existing snapshots for fast lookup
         const snapshotMap = new Map<string, InventorySnapshot>();
@@ -591,21 +652,20 @@ export class SalePointService {
         }
 
         // Aggregate all SalePoint adjustments
-        const adjustmentMap = new Map<string, {
-          productId: number;
-          productBrandId: number | null;
-          productBrandSkuId: number | null;
-          qty: number;
-          weight: number;
-          amount: number;
-        }>();
+        const adjustmentMap = new Map<
+          string,
+          {
+            productId: number;
+            productBrandId: number | null;
+            productBrandSkuId: number | null;
+            qty: number;
+            weight: number;
+            amount: number;
+          }
+        >();
 
         for (const entry of expenses) {
-          const key = getSnapshotKey(
-            entry.productId,
-            null,
-            null,
-          );
+          const key = getSnapshotKey(entry.productId, null, null);
 
           const multiplier = -1;
 
@@ -632,13 +692,11 @@ export class SalePointService {
         }
 
         for (const entry of salepointentries) {
-
           // Determine product type
-          const productType = String(
-            entry.productType ?? '',
-          ).toUpperCase();
+          const productType = String(entry.productType ?? '').toUpperCase();
 
-          const isCashableproductType = /TESTING|MAKING|REFINING|DIFFERENCE/.test(productType);
+          const isCashableproductType =
+            /TESTING|MAKING|REFINING|DIFFERENCE/.test(productType);
 
           const key = getSnapshotKey(
             isCashableproductType ? cashproduct.id : entry.productId,
@@ -647,22 +705,16 @@ export class SalePointService {
           );
 
           // Determine transaction direction
-          const category =
-            String(entry.transactionCategory).toUpperCase();
+          const category = String(entry.transactionCategory).toUpperCase();
 
           const multiplier =
-            category === 'GIVEN' ? -1 :
-              category === 'RECEIVED' ? 1 : 0;
+            category === 'GIVEN' ? -1 : category === 'RECEIVED' ? 1 : 0;
 
           if (multiplier === 0) {
             continue;
           }
 
-          const productName = String(
-            entry.product?.name ?? '',
-          ).toUpperCase();
-
-
+          const productName = String(entry.product?.name ?? '').toUpperCase();
 
           // Cash-based entries
           const isCash = productName === 'CASH' || isCashableproductType;
@@ -672,9 +724,15 @@ export class SalePointService {
 
           if (!adjustment) {
             adjustment = {
-              productId: isCashableproductType ? cashproduct.id : entry.productId,
-              productBrandId: isCashableproductType ? null : (entry.productBrandId ?? null),
-              productBrandSkuId: isCashableproductType ? null : (entry.productBrandSkuId ?? null),
+              productId: isCashableproductType
+                ? cashproduct.id
+                : entry.productId,
+              productBrandId: isCashableproductType
+                ? null
+                : (entry.productBrandId ?? null),
+              productBrandSkuId: isCashableproductType
+                ? null
+                : (entry.productBrandSkuId ?? null),
               qty: 0,
               weight: 0,
               amount: 0,
@@ -689,26 +747,13 @@ export class SalePointService {
 
           // Apply transaction-specific adjustment
           if (isCash) {
-
             adjustment.amount += amount * multiplier;
-
-          } else if (
-            productName === 'LAB' ||
-            productName === 'GINNI'
-          ) {
-
+          } else if (productName === 'LAB' || productName === 'GINNI') {
             adjustment.weight += Number((weight * multiplier).toFixed(3));
-
-          } else if (
-            productName === 'COIN' ||
-            productName === 'BAR'
-          ) {
-
+          } else if (productName === 'COIN' || productName === 'BAR') {
             adjustment.qty += qty * multiplier;
-            adjustment.weight += Number(((qty * weight) * multiplier).toFixed(3));
-
+            adjustment.weight += Number((qty * weight * multiplier).toFixed(3));
           } else if (productName === 'PC') {
-
             adjustment.qty += qty * multiplier;
             adjustment.weight += Number((weight * multiplier).toFixed(3));
           }
@@ -718,7 +763,6 @@ export class SalePointService {
         const updatedSnapshots: InventorySnapshot[] = [];
 
         for (const [key, adjustment] of adjustmentMap) {
-
           let snapshot = snapshotMap.get(key);
 
           // Create snapshot if it doesn't exist
@@ -732,18 +776,21 @@ export class SalePointService {
               amount: 0,
             };
 
-            snapshot = inventorysnapshotRepo.create(payload as InventorySnapshot);
+            snapshot = inventorysnapshotRepo.create(
+              payload as InventorySnapshot,
+            );
           }
 
           // Update balances
-          snapshot.qty = String(
-            Number(snapshot.qty ?? 0) + adjustment.qty);
+          snapshot.qty = String(Number(snapshot.qty ?? 0) + adjustment.qty);
 
           snapshot.weight = String(
-            (Number(snapshot.weight ?? 0) + adjustment.weight).toFixed(3));
+            (Number(snapshot.weight ?? 0) + adjustment.weight).toFixed(3),
+          );
 
           snapshot.amount = String(
-            Number(snapshot.amount ?? 0) + adjustment.amount);
+            Number(snapshot.amount ?? 0) + adjustment.amount,
+          );
 
           updatedSnapshots.push(snapshot);
         }
@@ -766,14 +813,16 @@ export class SalePointService {
           },
           req,
         );
-
       });
     } catch (error) {
       return this.res.generateError(error || 'Something went wrong', req);
     }
   }
 
-  async getInventorySnapshotOpening(params: DailyReportSubmitDto, req: Request) {
+  async getInventorySnapshotOpening(
+    params: DailyReportSubmitDto,
+    req: Request,
+  ) {
     try {
       const { dailyreportDate } = params;
       if ((dailyreportDate ?? '') == '') {
@@ -783,12 +832,16 @@ export class SalePointService {
         //     null,
         //     req,
         //   );
-        return this.res.generateError('Daily Report Date is required to get Inventory Snapshot Opening', req);
+        return this.res.generateError(
+          'Daily Report Date is required to get Inventory Snapshot Opening',
+          req,
+        );
       }
 
       return await this._dataSource.transaction(async (manager) => {
         const productRepo = manager.getRepository(Product);
-        const dailyreportsnapshotRepo = manager.getRepository(DailyReportSnapshot);
+        const dailyreportsnapshotRepo =
+          manager.getRepository(DailyReportSnapshot);
 
         // Prevent submitting the same report date twice.
         const existingReport = await dailyreportsnapshotRepo.findOne({
@@ -811,7 +864,10 @@ export class SalePointService {
                 .addSelect('SUM(snapshot.qty)', 'qty')
                 .addSelect('SUM(snapshot.weight)', 'weight')
                 .addSelect('SUM(snapshot.amount)', 'amount')
-                .from(existingReport ? DailyReportSnapshot : InventorySnapshot, 'snapshot')
+                .from(
+                  existingReport ? DailyReportSnapshot : InventorySnapshot,
+                  'snapshot',
+                )
                 .where(
                   existingReport
                     ? 'snapshot.dailyreportDate = :dailyreportDate'
@@ -844,12 +900,9 @@ export class SalePointService {
           inventorySnapshot,
           req,
         );
-
       });
-    }
-    catch (error) {
+    } catch (error) {
       return this.res.generateError(error || 'Something went wrong', req);
     }
   }
-
 }
