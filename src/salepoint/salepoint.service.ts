@@ -50,7 +50,9 @@ export class SalePointService {
         // const recordcreated_at = body.at(0)?.recordcreated_at ?? new Date();
         // recordcreated_at.setHours(0, 0, 0, 0);
 
-        const recordcreated_at = new Date(body.at(0)?.recordcreated_at ?? Date.now());
+        const recordcreated_at = new Date(
+          body.at(0)?.recordcreated_at ?? Date.now(),
+        );
 
         //const startOfDay = new Date(recordcreated_at);
         recordcreated_at.setHours(0, 0, 0, 0);
@@ -613,9 +615,9 @@ export class SalePointService {
           },
         });
 
-        const dailyReportSnapshots = inventorysnapshotentries.map((snapshot) =>
+        let dailyReportSnapshots = inventorysnapshotentries.map((snapshot) =>
           dailyreportsnapshotRepo.create({
-            productId: snapshot.productId,
+            productId: snapshot.productId ?? 0,
             productBrandId: snapshot.productBrandId,
             productBrandSkuId: snapshot.productBrandSkuId,
             qty: snapshot.qty,
@@ -798,6 +800,21 @@ export class SalePointService {
         // Save all modified inventory snapshots in bulk
         if (updatedSnapshots.length > 0) {
           await inventorysnapshotRepo.save(updatedSnapshots);
+        }
+
+        if (dailyReportSnapshots.length == 0) {
+          dailyReportSnapshots = updatedSnapshots.map((snapshot) =>
+            dailyreportsnapshotRepo.create({
+              productId: snapshot.productId ?? 0,
+              productBrandId: snapshot.productBrandId,
+              productBrandSkuId: snapshot.productBrandSkuId,
+              qty: '0',
+              weight: '0',
+              amount: '0',
+              dailyreportDate: start,
+            }),
+          );
+          await dailyreportsnapshotRepo.save(dailyReportSnapshots);
         }
 
         return this.res.generateResponse(
