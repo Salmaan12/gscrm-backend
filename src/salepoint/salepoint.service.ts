@@ -159,7 +159,8 @@ export class SalePointService {
       const where: any = {
         recordcreated_at: Between(start, end),
         transactionCategory: Not(In(['Bill Received', 'Bill Given'])),
-        productType: Not('RateWork'),
+        //productType: Not('RateWork'),
+        productType: Not(In(['RateWork','Opening']) ),
       };
       where.isDeleted = false;
 
@@ -539,7 +540,8 @@ export class SalePointService {
         const where: any = {
           recordcreated_at: Between(start, end),
           transactionCategory: Not(In(['Bill Received', 'Bill Given'])),
-          productType: Not('RateWork'),
+          //productType: Not('RateWork'),
+          productType: Not(In(['RateWork','Opening']) ),
         };
         where.isDeleted = false;
 
