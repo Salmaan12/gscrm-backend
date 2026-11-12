@@ -6,6 +6,7 @@ import {
 } from 'typeorm';
 import { Ratework } from './ratework.entity';
 import { SalePoint } from './salepoint.entity';
+import { CustomerBalance } from './customerbalance.entity';
 
 @Entity('customer')
 export class Customer {
@@ -38,4 +39,7 @@ export class Customer {
 
   @OneToMany(() => SalePoint, (salePoint) => salePoint.customer)
   salePoint!: SalePoint[];
+
+  @OneToMany(() => CustomerBalance, (customerBalance) => customerBalance.customer)
+  customerBalance!: CustomerBalance[];
 }

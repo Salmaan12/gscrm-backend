@@ -30,6 +30,7 @@ import { Expense } from 'src/entities/expense.entity';
 import { InventorySnapshot } from 'src/entities/inventorysnapshot.entity';
 import { DailyReportSnapshot } from 'src/entities/dailyreportsnapshot.entity';
 import { Product } from 'src/entities/product.entity';
+import { CustomerBalance } from 'src/entities/customerbalance.entity';
 
 @Injectable()
 export class SalePointService {
@@ -42,7 +43,7 @@ export class SalePointService {
     private readonly _dailyreportsnapshotRepo: Repository<DailyReportSnapshot>,
     @Inject('RESPONSE-SERVICE') private res: ResponseService,
     private readonly _dataSource: DataSource,
-  ) {}
+  ) { }
 
   async createSalePointEntiries(body: CreateSalePoint[], req: Request) {
     try {
@@ -74,51 +75,116 @@ export class SalePointService {
           );
         }
 
-        const referenceNo = body.at(0)?.referenceNo;
-        const checkSalePointEntriesAlreadyExists: SalePoint[] =
-          await this._salepointRepo
-            .createQueryBuilder('salepoint')
-            .where('salepoint.referenceNo = :referenceNo', { referenceNo })
-            .execute();
+        return await this._dataSource.transaction(async (manager) => {
+          const salepointRepo = manager.getRepository(SalePoint);
+          const referenceNo = body.at(0)?.referenceNo;
+          const customerId = body.at(0)?.customerId;
+          const checkSalePointEntriesAlreadyExists: SalePoint[] =
+            await salepointRepo
+              .createQueryBuilder('salepoint')
+              .where('salepoint.referenceNo = :referenceNo', { referenceNo })
+              .execute();
 
-        if (checkSalePointEntriesAlreadyExists.length > 0) {
-          return this.res.generateError(
-            'SalePoint Entries already exists against Reference Number',
-            req,
+          if (checkSalePointEntriesAlreadyExists.length > 0) {
+            return this.res.generateError(
+              'SalePoint Entries already exists against Reference Number',
+              req,
+            );
+          }
+
+          const payload: SalePoint[] = body.map(
+            (item) =>
+              ({
+                referenceNo: item.referenceNo,
+                customerId: item.customerId,
+                productId: item.productId,
+                productBrandId: item.productBrandId,
+                productBrandSkuId: item.productBrandSkuId,
+                transactionCategory: item.transactionCategory,
+                report: item.report,
+                weight: item.weight,
+                pureWeight: item.pureWeight,
+                qty: item.qty,
+                amount: item.amount,
+                difference: item.difference,
+                differenceTotal: item.differenceTotal,
+                making: item.making,
+                makingTotal: item.makingTotal,
+                refining: item.refining,
+                refiningTotal: item.refiningTotal,
+                karat: item.karat,
+                rate: item.rate,
+                status: item.status,
+                recordcreated_at: item.recordcreated_at,
+                productType: item.productType,
+                descriptionNote: item.descriptionNote,
+              }) as SalePoint,
           );
-        }
 
-        const payload: SalePoint[] = body.map(
-          (item) =>
-            ({
-              referenceNo: item.referenceNo,
-              customerId: item.customerId,
-              productId: item.productId,
-              productBrandId: item.productBrandId,
-              productBrandSkuId: item.productBrandSkuId,
-              transactionCategory: item.transactionCategory,
-              report: item.report,
-              weight: item.weight,
-              pureWeight: item.pureWeight,
-              qty: item.qty,
-              amount: item.amount,
-              difference: item.difference,
-              differenceTotal: item.differenceTotal,
-              making: item.making,
-              makingTotal: item.makingTotal,
-              refining: item.refining,
-              refiningTotal: item.refiningTotal,
-              karat: item.karat,
-              rate: item.rate,
-              status: item.status,
-              recordcreated_at: item.recordcreated_at,
-              productType: item.productType,
-              descriptionNote: item.descriptionNote,
-            }) as SalePoint,
-        );
+          const salepointentries = salepointRepo.create(payload);
+          await salepointRepo.save(salepointentries);
 
-        const salepointentries = this._salepointRepo.create(payload);
-        await this._salepointRepo.save(salepointentries);
+          const customerBalanceRepo = manager.getRepository(CustomerBalance);
+          const customerBalance = await customerBalanceRepo.findOne({
+            where: {
+              customerId: customerId as any,
+            },
+            lock: {
+              mode: 'pessimistic_write',
+            },
+          });
+
+          if (customerBalance) {
+            let weight = Number(customerBalance.weight ?? 0);
+            let amount = Number(customerBalance.amount ?? 0);
+
+            for (const entry of salepointentries) {
+              const productType = String(entry.productType ?? '').toUpperCase();
+
+              const isCashableproductType =
+                /TESTING|MAKING|REFINING|DIFFERENCE/.test(productType);
+
+              // Determine transaction direction
+              const category = String(entry.transactionCategory).toUpperCase();
+
+              const multiplier =
+                (category === 'GIVEN' || category === 'BILL RECEIVED') ? -1 : (category === 'RECEIVED' || category === 'RECEIVED GIVEN') ? 1 : 0;
+
+              if (multiplier === 0) {
+                continue;
+              }
+
+              const productName = String(entry.product?.name ?? '').toUpperCase();
+
+              // Cash-based entries
+              const isCash = productName === 'CASH' || isCashableproductType;
+
+              const entryqty = Number(entry.qty ?? 0);
+              const entryweight = Number(entry.weight ?? 0);
+              const entryamount = Number(entry.amount ?? 0);
+
+              // Apply transaction-specific adjustment
+              if (isCash) {
+                amount += entryamount * multiplier;
+              } else if (productName === 'LAB' || productName === 'GINNI') {
+                weight += Number((entryweight * multiplier).toFixed(3));
+              } else if (productName === 'COIN' || productName === 'BAR') {
+                weight += Number((entryqty * entryweight * multiplier).toFixed(3));
+              } else if (productName === 'PC') {
+                weight += Number((entryweight * multiplier).toFixed(3));
+              } else if (productName === 'RateWork' || productName === 'Opening') {
+                amount += entryamount * multiplier;
+                weight += Number((entryweight * multiplier).toFixed(3));
+              }
+            }
+
+            if (salepointentries.length > 0) {
+              customerBalance.weight = String(weight);
+              customerBalance.amount = String(amount);
+              return await customerBalanceRepo.save(customerBalance);
+            }
+          }
+        });
 
         return this.res.generateResponse(
           200,
@@ -160,7 +226,7 @@ export class SalePointService {
         recordcreated_at: Between(start, end),
         transactionCategory: Not(In(['Bill Received', 'Bill Given'])),
         //productType: Not('RateWork'),
-        productType: Not(In(['RateWork','Opening']) ),
+        productType: Not(In(['RateWork', 'Opening'])),
       };
       where.isDeleted = false;
 
@@ -231,8 +297,8 @@ export class SalePointService {
         ...entry,
         totalgm:
           entry.productType.toLowerCase() == 'lab' ||
-          entry.productType.toLowerCase() == 'ginni' ||
-          entry.productType.toLowerCase() == 'pc'
+            entry.productType.toLowerCase() == 'ginni' ||
+            entry.productType.toLowerCase() == 'pc'
             ? Number(entry.weight ?? 0)
             : Number(entry.qty ?? 0) * Number(entry.weight ?? 0),
       }));
@@ -541,7 +607,7 @@ export class SalePointService {
           recordcreated_at: Between(start, end),
           transactionCategory: Not(In(['Bill Received', 'Bill Given'])),
           //productType: Not('RateWork'),
-          productType: Not(In(['RateWork','Opening']) ),
+          productType: Not(In(['RateWork', 'Opening'])),
         };
         where.isDeleted = false;
 
