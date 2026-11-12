@@ -394,25 +394,25 @@ export class SalePointService {
     try {
       const { startDate, endDate, customerId, referenceNo } = params;
 
-      if ((startDate ?? '') == '' || (endDate ?? '') == '') {
-        return this.res.generateError(
-          'Start & End Dates are required to extract Sale Point Entries.',
-          req,
-        );
-      }
+      // if ((startDate ?? '') == '' || (endDate ?? '') == '') {
+      //   return this.res.generateError(
+      //     'Start & End Dates are required to extract Sale Point Entries.',
+      //     req,
+      //   );
+      // }
 
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
+      // const start = new Date(startDate);
+      // start.setHours(0, 0, 0, 0);
 
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
+      // const end = new Date(endDate);
+      // end.setHours(23, 59, 59, 999);
 
       const where: any = {
-        recordcreated_at: Between(start, end),
-        // transactionCategory: Not(In(['Bill Received', 'Bill Given'])),
-        // productType: Not('RateWork'),
+        // recordcreated_at: Between(start, end),
+        // // transactionCategory: Not(In(['Bill Received', 'Bill Given'])),
+        // // productType: Not('RateWork'),'
+        isDeleted: false
       };
-      where.isDeleted = false;
 
       if (customerId !== undefined) {
         where.customerId = customerId;
