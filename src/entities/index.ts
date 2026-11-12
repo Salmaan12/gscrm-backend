@@ -15,6 +15,7 @@ import { Inventory } from "./inventory.entity";
 import { Expense } from "./expense.entity";
 import { InventorySnapshot } from "./inventorysnapshot.entity";
 import { DailyReportSnapshot } from "./dailyreportsnapshot.entity";
+import { CustomerBalance } from "./customerbalance.entity";
 
 const entities = [
     User,
@@ -33,7 +34,8 @@ const entities = [
     Inventory,
     Expense,
     InventorySnapshot,
-    DailyReportSnapshot
+    DailyReportSnapshot,
+    CustomerBalance
 ]
 
 export default entities;

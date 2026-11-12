@@ -14,12 +14,15 @@ import { Customer } from 'src/entities/customer.entity';
 import { IsNull, Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
+import { CustomerBalance } from 'src/entities/customerbalance.entity';
 
 @Injectable()
 export class CustomersService {
   constructor(
     @InjectRepository(Customer)
     private readonly _customerRepo: Repository<Customer>,
+    @InjectRepository(CustomerBalance)
+    private readonly _customerBalanceRepo: Repository<CustomerBalance>,
     @Inject('RESPONSE-SERVICE') private res: ResponseService,
   ) {}
 
@@ -58,7 +61,16 @@ export class CustomersService {
       };
 
       const customer = this._customerRepo.create(payload);
-      await this._customerRepo.save(customer);
+      const savedCustomer = await this._customerRepo.save(customer);
+
+      const payloadCustomerBalance: CustomerBalance | any = {
+        customer: savedCustomer as any,
+        weight: '0',
+        amount: '0'
+      };
+
+      const customerBalance = this._customerBalanceRepo.create(payloadCustomerBalance);
+      await this._customerBalanceRepo.save(customerBalance);
 
       return this.res.generateResponse(
         200,
