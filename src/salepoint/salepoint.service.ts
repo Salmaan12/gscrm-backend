@@ -154,10 +154,9 @@ export class SalePointService {
                 continue;
               }
 
-              const productName = String(entry.product?.name ?? '').toUpperCase();
 
               // Cash-based entries
-              const isCash = productName === 'CASH' || isCashableproductType;
+              const isCash = productType === 'CASH' || isCashableproductType;
 
               const entryqty = Number(entry.qty ?? 0);
               const entryweight = Number(entry.weight ?? 0);
@@ -166,13 +165,13 @@ export class SalePointService {
               // Apply transaction-specific adjustment
               if (isCash) {
                 amount += entryamount * multiplier;
-              } else if (productName === 'LAB' || productName === 'GINNI') {
+              } else if (productType === 'LAB' || productType === 'GINNI') {
                 weight += Number((entryweight * multiplier).toFixed(3));
-              } else if (productName === 'COIN' || productName === 'BAR') {
+              } else if (productType === 'COIN' || productType === 'BAR') {
                 weight += Number((entryqty * entryweight * multiplier).toFixed(3));
-              } else if (productName === 'PC') {
+              } else if (productType === 'PC') {
                 weight += Number((entryweight * multiplier).toFixed(3));
-              } else if (productName === 'RateWork' || productName === 'Opening') {
+              } else if (productType === 'RATEWORK' || productType === 'OPENING') {
                 amount += entryamount * multiplier;
                 weight += Number((entryweight * multiplier).toFixed(3));
               }
@@ -181,17 +180,16 @@ export class SalePointService {
             if (salepointentries.length > 0) {
               customerBalance.weight = String(weight);
               customerBalance.amount = String(amount);
-              return await customerBalanceRepo.save(customerBalance);
+              await customerBalanceRepo.save(customerBalance);
             }
           }
+          return this.res.generateResponse(
+            200,
+            'Sale Point Entries created successfully',
+            null,
+            req,
+          );
         });
-
-        return this.res.generateResponse(
-          200,
-          'Sale Point Entries created successfully',
-          null,
-          req,
-        );
       } else {
         return this.res.generateResponse(
           200,
