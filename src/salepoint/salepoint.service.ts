@@ -148,7 +148,7 @@ export class SalePointService {
               const category = String(entry.transactionCategory).toUpperCase();
 
               const multiplier =
-                (category === 'GIVEN' || category === 'BILL RECEIVED') ? -1 : (category === 'RECEIVED' || category === 'RECEIVED GIVEN') ? 1 : 0;
+                (category === 'GIVEN' || category === 'BILL RECEIVED') ? -1 : (category === 'RECEIVED' || category === 'BILL GIVEN') ? 1 : 0;
 
               if (multiplier === 0) {
                 continue;
@@ -160,14 +160,15 @@ export class SalePointService {
 
               const entryqty = Number(entry.qty ?? 0);
               const entryweight = Number(entry.weight ?? 0);
+              const entrypureWeight = Number(entry.pureWeight ?? 0);
               const entryamount = Number(entry.amount ?? 0);
 
               // Apply transaction-specific adjustment
               if (isCash) {
                 amount += entryamount * multiplier;
-              } else if (productType === 'LAB' || productType === 'GINNI') {
-                weight += Number((entryweight * multiplier).toFixed(3));
-              } else if (productType === 'COIN' || productType === 'BAR') {
+              } else if (productType === 'LAB' || productType === 'GINNI' || productType === 'COIN') {
+                weight += Number((entrypureWeight * multiplier).toFixed(3));
+              } else if (productType === 'BAR') {
                 weight += Number((entryqty * entryweight * multiplier).toFixed(3));
               } else if (productType === 'PC') {
                 weight += Number((entryweight * multiplier).toFixed(3));
