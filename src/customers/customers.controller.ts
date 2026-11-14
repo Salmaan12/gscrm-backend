@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Put, Request, UseGuards, Delete, Query } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Put, Request, UseGuards, Delete, Query} from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { CreateUpdateCustomer, PaginationDto } from './customer.dto';
 import { Request as request } from 'express';
@@ -48,6 +48,13 @@ export class CustomersController {
     @UseGuards(JwtAuthGuard)
     deleteCustomer(@Param('id', ParseIntPipe) id: number, @Request() req: request) {
         return this._customers.deleteCustomer(id,req);
+    }
+
+    
+    @Get('customerWithbalance')
+    @UseGuards(JwtAuthGuard)
+    getCustomerWithbalance(@Request() req: request){
+        return this._customers.getCustomerWithbalance(req);
     }
 
 }
