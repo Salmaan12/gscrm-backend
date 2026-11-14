@@ -11,7 +11,7 @@ import { Request } from 'express';
 import { CreateUpdateCustomer, PaginationDto } from './customer.dto';
 import { ResponseService } from 'src/shared/services/response.service';
 import { Customer } from 'src/entities/customer.entity';
-import { IsNull, Like, Repository } from 'typeorm';
+import { DataSource, IsNull, LessThan, Like, MoreThan, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 import { CustomerBalance } from 'src/entities/customerbalance.entity';
@@ -24,7 +24,8 @@ export class CustomersService {
     @InjectRepository(CustomerBalance)
     private readonly _customerBalanceRepo: Repository<CustomerBalance>,
     @Inject('RESPONSE-SERVICE') private res: ResponseService,
-  ) {}
+    private readonly _dataSource: DataSource,
+  ) { }
 
   async createCustomer(body: CreateUpdateCustomer, req: Request) {
     try {
@@ -169,11 +170,11 @@ export class CustomersService {
 
       const where = searchStr
         ? [
-            { customerName: Like(`%${searchStr}%`) },
-            { cnic: Like(`%${searchStr}%`) },
-            { primaryPhone: Like(`%${searchStr}%`) },
-            { secondaryPhone: Like(`%${searchStr}%`) },
-          ]
+          { customerName: Like(`%${searchStr}%`) },
+          { cnic: Like(`%${searchStr}%`) },
+          { primaryPhone: Like(`%${searchStr}%`) },
+          { secondaryPhone: Like(`%${searchStr}%`) },
+        ]
         : undefined;
 
       const [customers, total] = await this._customerRepo.findAndCount({
@@ -210,6 +211,108 @@ export class CustomersService {
         req,
       );
     } catch (error) {
+      return this.res.generateError(error || 'Something went wrong', req);
+    }
+  }
+
+  async getCustomerWithbalance(req: Request) {
+    try {
+      let whereCondition = {};
+
+      return await this._dataSource.transaction(async (manager) => {
+
+        const customerBalanceRepo = manager.getRepository(CustomerBalance);
+        const customerRepo = manager.getRepository(Customer);
+
+        whereCondition = { weight: MoreThan(0) };
+        const customerBalancePayableGold = await customerBalanceRepo.find({
+          where: whereCondition,
+          select: {
+            id: true,
+            customerId: true,
+            weight: true,
+            customer: {
+              customerName: true,
+              id: true, // Required by TypeORM to map relations properly
+            },
+          },
+          relations: {
+            customer: true,
+          },
+          order: { weight: 'DESC' }
+        });
+
+        whereCondition = { weight: LessThan(0) };
+        const customerBalanceReceivableGold = await customerBalanceRepo.find({
+          where: whereCondition,
+          select: {
+            id: true,
+            customerId: true,
+            weight: true,
+            customer: {
+              customerName: true,
+              id: true, // Required by TypeORM to map relations properly
+            },
+          },
+          relations: {
+            customer: true,
+          },
+          order: { weight: 'DESC' }
+        });
+
+        whereCondition = { amount: MoreThan(0) };
+        const customerBalancePayableAmount = await customerBalanceRepo.find({
+          where: whereCondition,
+          select: {
+            id: true,
+            customerId: true,
+            amount: true,
+            customer: {
+              customerName: true,
+              id: true, // Required by TypeORM to map relations properly
+            },
+          },
+          relations: {
+            customer: true,
+          },
+          order: { amount: 'DESC' }
+        });
+
+        whereCondition = { amount: LessThan(0) };
+        const customerBalanceReceivableAmount = await customerBalanceRepo.find({
+          where: whereCondition,
+          select: {
+            id: true,
+            customerId: true,
+            amount: true,
+            customer: {
+              customerName: true,
+              id: true, // Required by TypeORM to map relations properly
+            },
+          },
+          relations: {
+            customer: true,
+          },
+          order: { amount: 'DESC' }
+        });
+
+        const totalCustomers = await customerRepo.count();
+
+        return this.res.generateResponse(
+          HttpStatus.OK,
+          'Customers balance retrieved successfully',
+          {
+            customerBalancePayableGold : customerBalancePayableGold,
+            customerBalanceReceivableGold : customerBalanceReceivableGold,
+            customerBalancePayableAmount : customerBalancePayableAmount,
+            customerBalanceReceivableAmount : customerBalanceReceivableAmount,
+            totalCustomers : totalCustomers
+          },
+          req,
+        );
+      });
+    }
+    catch (error) {
       return this.res.generateError(error || 'Something went wrong', req);
     }
   }
