@@ -174,7 +174,7 @@ export class SalePointService {
                 weight += Number((entryweight * multiplier).toFixed(3));
               } else if (productType === 'RATEWORK' || productType === 'OPENING') {
                 amount += entryamount * multiplier;
-                weight += Number((entryweight * multiplier).toFixed(3));
+                weight += Number(((entryweight * -1) * multiplier).toFixed(3));
               }
             }
 

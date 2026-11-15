@@ -71,4 +71,10 @@ export class ProductController {
         return this._products.deleteBrandSku(id,req);
     }
 
+    @Delete('productWiseReceivedGivenStats')
+    @UseGuards(JwtAuthGuard)
+    productWiseReceivedGivenStats(@Request() req: request) {
+        return this._products.productWiseReceivedGivenStats(req);
+    }
+
 }

@@ -1,14 +1,15 @@
 import { BadRequestException, Body, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Request } from 'express';
-import { CreateProduct,CreateBrand,CreateBrandSKU,UpdateProduct,UpdateBrand,UpdateBrandSKU } from './product.dto';
+import { CreateProduct, CreateBrand, CreateBrandSKU, UpdateProduct, UpdateBrand, UpdateBrandSKU } from './product.dto';
 import { ResponseService } from 'src/shared/services/response.service';
 import { Product } from 'src/entities/product.entity';
 import { ProductBrand } from 'src/entities/product-brand.entity';
 import { ProductBrandSku } from 'src/entities/product-brand-sku.entity';
 import { ProductBrandSkuMaking } from 'src/entities/product-brand-sku-making.entity';
-import { IsNull, Repository } from 'typeorm';
+import { Between, DataSource, In, IsNull, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
+import { SalePoint } from 'src/entities/salepoint.entity';
 
 @Injectable()
 export class ProductService {
@@ -22,8 +23,9 @@ export class ProductService {
         private readonly _productbrandskuRepo: Repository<ProductBrandSku>,
         @InjectRepository(ProductBrandSkuMaking)
         private readonly _productbrandskumakingRepo: Repository<ProductBrandSkuMaking>,
+        private readonly _dataSource: DataSource,
         @Inject("RESPONSE-SERVICE") private res: ResponseService
-    ) {}
+    ) { }
 
     async getAllProductBrandSKUs(req: Request) {
         try {
@@ -63,9 +65,9 @@ export class ProductService {
             });
 
             const responseResult = {
-                products : products,
-                brands : brands,
-                skus : skus
+                products: products,
+                brands: brands,
+                skus: skus
             };
 
             return this.res.generateResponse(
@@ -84,98 +86,98 @@ export class ProductService {
 
     async createProduct(body: CreateProduct, req: Request) {
         try {
-    
+
             const { name, type, IsActive } = body;
-    
+
             const checkProductAlreadyExists: Product[] = await this._productRepo.createQueryBuilder('product')
-                    .where('product.name = :name AND product.type = :type', { name , type })
-                    .execute();
-    
+                .where('product.name = :name AND product.type = :type', { name, type })
+                .execute();
+
             if (checkProductAlreadyExists.length > 0) {
                 return this.res.generateError('Product with same name already exists', req);
             }
-    
+
             const payload: Product | any = {
-                    name: name,
-                    type: type,
-                    isActive: IsActive
+                name: name,
+                type: type,
+                isActive: IsActive
             };
-    
+
             const product = this._productRepo.create(payload);
             await this._productRepo.save(product);
-    
+
             return this.res.generateResponse(
-                    200,
-                    'Product created successfully',
-                    product,
-                    req
+                200,
+                'Product created successfully',
+                product,
+                req
             );
-                
+
         } catch (error) {
             return this.res.generateError(
-                    error || 'Something went wrong',
-                    req
+                error || 'Something went wrong',
+                req
             );
         }
     }
 
     async createBrand(body: CreateBrand, req: Request) {
         try {
-    
+
             const { name, productId, IsActive } = body;
-    
+
             const checkBrandAlreadyExists: ProductBrand[] = await this._productbrandRepo.createQueryBuilder('brand')
-                    .where('brand.name = :name AND brand.productId = :productId', { name , productId })
-                    .execute();
-    
+                .where('brand.name = :name AND brand.productId = :productId', { name, productId })
+                .execute();
+
             if (checkBrandAlreadyExists.length > 0) {
                 return this.res.generateError('Brand with same name already exists', req);
             }
-    
+
             const payload: ProductBrand | any = {
-                    name: name,
-                    productId: productId,
-                    isActive: IsActive
+                name: name,
+                productId: productId,
+                isActive: IsActive
             };
-    
+
             const brand = this._productbrandRepo.create(payload);
             await this._productbrandRepo.save(brand);
-    
+
             return this.res.generateResponse(
-                    200,
-                    'Brand created successfully',
-                    brand,
-                    req
+                200,
+                'Brand created successfully',
+                brand,
+                req
             );
-                
+
         } catch (error) {
             return this.res.generateError(
-                    error || 'Something went wrong',
-                    req
+                error || 'Something went wrong',
+                req
             );
         }
     }
 
     async createBrandSKU(body: CreateBrandSKU, req: Request) {
         try {
-    
+
             const { name, productBrandId, IsActive, weightInGM, makingCharges } = body;
-    
+
             const checkBrandSKUAlreadyExists: ProductBrandSku[] = await this._productbrandskuRepo.createQueryBuilder('brandsku')
-                    .where('brandsku.name = :name AND brandsku.productBrandId = :productBrandId', { name , productBrandId })
-                    .execute();
-    
+                .where('brandsku.name = :name AND brandsku.productBrandId = :productBrandId', { name, productBrandId })
+                .execute();
+
             if (checkBrandSKUAlreadyExists.length > 0) {
                 return this.res.generateError('Brand SKU with same name already exists', req);
             }
-    
+
             const payload: ProductBrandSku | any = {
-                    name: name,
-                    productBrandId: productBrandId,
-                    weightInGM: weightInGM,
-                    isActive: IsActive
+                name: name,
+                productBrandId: productBrandId,
+                weightInGM: weightInGM,
+                isActive: IsActive
             };
-    
+
             const brandsku = this._productbrandskuRepo.create(payload);
             const savedBrandSku = await this._productbrandskuRepo.save(brandsku);
 
@@ -184,41 +186,41 @@ export class ProductService {
             //         makingCharges: makingCharges,
             //         isActive: IsActive
             // };
-    
+
             // const brandskumaking = this._productbrandskumakingRepo.create(payloadskumaking);
-            
+
             const makingChargesPayload = this._productbrandskumakingRepo.create({
-                    makingCharges: makingCharges, 
-                    isActive: IsActive,
-                    productBrandSku: savedBrandSku as any
+                makingCharges: makingCharges,
+                isActive: IsActive,
+                productBrandSku: savedBrandSku as any
             });
 
             await this._productbrandskumakingRepo.save(makingChargesPayload);
-    
+
             return this.res.generateResponse(
-                    200,
-                    'Brand SKU created successfully',
-                    brandsku,
-                    req
+                200,
+                'Brand SKU created successfully',
+                brandsku,
+                req
             );
-                
+
         } catch (error) {
             return this.res.generateError(
-                    error || 'Something went wrong',
-                    req
+                error || 'Something went wrong',
+                req
             );
         }
     }
 
-    async updateProduct(id: number,body: UpdateProduct, req: Request) {
+    async updateProduct(id: number, body: UpdateProduct, req: Request) {
         try {
-    
+
             const { name, type, IsActive } = body;
-    
+
             const checkProductAlreadyExists: Product[] = await this._productRepo.createQueryBuilder('product')
-                    .where('product.id <> :id AND product.name = :name AND product.type = :type', { id, name , type })
-                    .execute();
-    
+                .where('product.id <> :id AND product.name = :name AND product.type = :type', { id, name, type })
+                .execute();
+
             if (checkProductAlreadyExists.length > 0) {
                 return this.res.generateError('Product with same name already exists', req);
             }
@@ -236,27 +238,27 @@ export class ProductService {
 
             // if product not update return error message
             if (!updateproduct.affected) throw new Error("product not updated, internal server issues");
-    
+
             /// Return success message
             return this.res.generateResponse(HttpStatus.OK, "Product Updated Successfully", [], req);
-                
+
         } catch (error) {
             return this.res.generateError(
-                    error || 'Something went wrong',
-                    req
+                error || 'Something went wrong',
+                req
             );
         }
     }
 
-    async updateBrand(id: number,body: UpdateBrand, req: Request) {
+    async updateBrand(id: number, body: UpdateBrand, req: Request) {
         try {
-    
+
             const { name, productId, IsActive } = body;
-    
+
             const checkBrandAlreadyExists: ProductBrand[] = await this._productbrandRepo.createQueryBuilder('brand')
-                    .where('brand.id <> :id AND brand.name = :name AND brand.productId = :productId', { id, name , productId })
-                    .execute();
-    
+                .where('brand.id <> :id AND brand.name = :name AND brand.productId = :productId', { id, name, productId })
+                .execute();
+
             if (checkBrandAlreadyExists.length > 0) {
                 return this.res.generateError('Brand with same name already exists', req);
             }
@@ -274,27 +276,27 @@ export class ProductService {
 
             // if brand not update return error message
             if (!updatebrand.affected) throw new Error("brand not updated, internal server issues");
-    
+
             /// Return success message
             return this.res.generateResponse(HttpStatus.OK, "Brand Updated Successfully", [], req);
-                
+
         } catch (error) {
             return this.res.generateError(
-                    error || 'Something went wrong',
-                    req
+                error || 'Something went wrong',
+                req
             );
         }
     }
 
-    async updateBrandSKU(id: number,body: UpdateBrandSKU, req: Request) {
+    async updateBrandSKU(id: number, body: UpdateBrandSKU, req: Request) {
         try {
-    
+
             const { name, productBrandId, IsActive, weightInGM, makingCharges } = body;
-    
+
             const checkBrandSKUAlreadyExists: ProductBrandSku[] = await this._productbrandskuRepo.createQueryBuilder('brandsku')
-                    .where('brandsku.id <> :id AND brandsku.name = :name AND brandsku.productBrandId = :productBrandId', { id, name , productBrandId })
-                    .execute();
-    
+                .where('brandsku.id <> :id AND brandsku.name = :name AND brandsku.productBrandId = :productBrandId', { id, name, productBrandId })
+                .execute();
+
             if (checkBrandSKUAlreadyExists.length > 0) {
                 return this.res.generateError('Brand SKU with same name already exists', req);
             }
@@ -323,14 +325,14 @@ export class ProductService {
 
             // if brand sku and making not update return error message
             if (!updatebrandsku.affected || !updatebrandskumaking.affected) throw new Error("brand sku not updated, internal server issues");
-    
+
             /// Return success message
             return this.res.generateResponse(HttpStatus.OK, "Brand SKU Updated Successfully", [], req);
-                
+
         } catch (error) {
             return this.res.generateError(
-                    error || 'Something went wrong',
-                    req
+                error || 'Something went wrong',
+                req
             );
         }
     }
@@ -343,24 +345,24 @@ export class ProductService {
                     id: id,
                 },
             });
-    
+
             if (!checkProductExists) {
-                return this.res.generateError('Product not found',req);
+                return this.res.generateError('Product not found', req);
             }
-            
+
             const result = await this._productRepo.delete(id);
 
             if (result.affected === 0) {
-                return this.res.generateError('Product not found',req);
+                return this.res.generateError('Product not found', req);
             }
-    
+
             /// Return success message
             return this.res.generateResponse(HttpStatus.OK, "Product Deleted Successfully", [], req);
-                
+
         } catch (error) {
             return this.res.generateError(
-                    error || 'Something went wrong',
-                    req
+                error || 'Something went wrong',
+                req
             );
         }
     }
@@ -373,24 +375,24 @@ export class ProductService {
                     id: id,
                 },
             });
-    
+
             if (!checkBrandExists) {
-                return this.res.generateError('Brand not found',req);
+                return this.res.generateError('Brand not found', req);
             }
-            
+
             const result = await this._productbrandRepo.delete(id);
 
             if (result.affected === 0) {
-                return this.res.generateError('Brand not found',req);
+                return this.res.generateError('Brand not found', req);
             }
-    
+
             /// Return success message
             return this.res.generateResponse(HttpStatus.OK, "Brand Deleted Successfully", [], req);
-                
+
         } catch (error) {
             return this.res.generateError(
-                    error || 'Something went wrong',
-                    req
+                error || 'Something went wrong',
+                req
             );
         }
     }
@@ -403,26 +405,167 @@ export class ProductService {
                     id: id,
                 },
             });
-    
+
             if (!checkBrandSkuExists) {
-                return this.res.generateError('Brand Sku not found',req);
+                return this.res.generateError('Brand Sku not found', req);
             }
-            
+
             const result = await this._productbrandskuRepo.delete(id);
 
             if (result.affected === 0) {
-                return this.res.generateError('Brand Sku not found',req);
+                return this.res.generateError('Brand Sku not found', req);
             }
-    
+
             /// Return success message
             return this.res.generateResponse(HttpStatus.OK, "Brand Sku Deleted Successfully", [], req);
-                
+
         } catch (error) {
             return this.res.generateError(
-                    error || 'Something went wrong',
-                    req
+                error || 'Something went wrong',
+                req
             );
         }
     }
 
+    async productWiseReceivedGivenStats(req: Request) {
+        try {
+            return await this._dataSource.transaction(async (manager) => {
+                const productRepo = manager.getRepository(Product);
+                const salepointRepo = manager.getRepository(SalePoint);
+
+                let cashproductid = 0;
+
+                const products: Product[] = await productRepo.find({
+                    where: {
+                        isActive: true,
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                        isActive: true
+                    }
+                });
+
+                // Aggregate all SalePoint adjustments by product
+                const productMap = new Map<
+                    string,
+                    {
+                        productId: number;
+                        type: string;
+                        transactionCategory: string;
+                        weight: number;
+                        amount: number;
+                    }
+                >();
+
+                for (const product of products) {
+                    if (product.name.toUpperCase() === 'CASH') {
+                        cashproductid = product.id;
+                    }
+                    productMap.set((product.id + ' _ GIVEN'), {
+                        productId: product.id,
+                        type: product.type,
+                        transactionCategory: 'GIVEN',
+                        weight: 0,
+                        amount: 0,
+                    });
+                    productMap.set((product.id + ' _ RECEIVED'), {
+                        productId: product.id,
+                        type: product.type,
+                        transactionCategory: 'RECEIVED',
+                        weight: 0,
+                        amount: 0,
+                    });
+                }
+
+                const start = new Date();
+                start.setHours(0, 0, 0, 0);
+
+                const end = new Date();
+                end.setHours(23, 59, 59, 999);
+
+                const where: any = {
+                    recordcreated_at: Between(start, end),
+                    transactionCategory: Not(In(['Bill Received', 'Bill Given'])),
+                    productType: Not(In(['RateWork', 'Opening'])),
+                };
+                where.isDeleted = false;
+
+                const salepointentries = await salepointRepo.find({
+                    where,
+                    select: {
+                        id: true,
+                        referenceNo: true,
+                        customerId: true,
+                        productId: true,
+                        productBrandId: true,
+                        productBrandSkuId: true,
+                        transactionCategory: true,
+                        productType: true,
+                        weight: true,
+                        qty: true,
+                        amount: true,
+                        product: {
+                            name: true,
+                            id: true, // Required by TypeORM to map relations properly
+                        },
+                    },
+                    relations: {
+                        product: true,
+                    },
+                });
+
+                for (const entry of salepointentries) {
+                    // Determine product type
+                    const productType = String(entry.productType ?? '').toUpperCase();
+
+                    const isCashableproductType =
+                        /TESTING|MAKING|REFINING|DIFFERENCE/.test(productType);
+
+                    // Determine transaction direction
+                    const category = String(entry.transactionCategory).toUpperCase();
+
+                    const key = (isCashableproductType ? cashproductid : entry.productId) + ' _ ' + category;
+
+                    const productName = String(entry.product?.name ?? '').toUpperCase();
+
+                    // Cash-based entries
+                    const isCash = productName === 'CASH' || isCashableproductType;
+
+                    // Get or initialize aggregate
+                    let productEntry = productMap.get(key);
+
+                    if (productEntry) {
+                        const qty = Number(entry.qty ?? 0);
+                        const weight = Number(entry.weight ?? 0);
+                        const amount = Number(entry.amount ?? 0);
+
+                        // Apply transaction-specific adjustment
+                        if (isCash) {
+                            productEntry.amount += amount;
+                        } else if (productName === 'LAB' || productName === 'GINNI') {
+                            productEntry.weight += Number((weight).toFixed(3));
+                        } else if (productName === 'COIN' || productName === 'BAR') {
+                            productEntry.weight += Number((qty * weight).toFixed(3));
+                        } else if (productName === 'PC') {
+                            productEntry.weight += Number((weight).toFixed(3));
+                        }
+                    }
+                }
+
+                return this.res.generateResponse(
+                    200,
+                    'Products wise Received Given stats retrieved successfully',
+                    productMap.values,
+                    req
+                );
+
+            });
+        }
+        catch (error) {
+            return this.res.generateError(error || 'Something went wrong', req);
+        }
+
+    }
 }

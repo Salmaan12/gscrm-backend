@@ -109,9 +109,13 @@ export class CustomersService {
     }
   }
 
-  async getCustomerById(customerId: string) {
-    const customer = await this._customerRepo.findOneBy({ id: +customerId });
-    return customer;
+  async getCustomerById(customerId: string,req: Request) {
+    try {
+      const customer = await this._customerRepo.findOneBy({ id: +customerId });
+      return customer;
+    } catch (error) {
+      return this.res.generateError(error || 'Something went wrong', req);
+    }
   }
 
   async updateCustomer(id: number, body: CreateUpdateCustomer, req: Request) {
@@ -215,7 +219,7 @@ export class CustomersService {
     }
   }
 
-  async getCustomerWithbalance(req: Request) {
+  async getCustomerWithBalance(req: Request) {
     try {
       let whereCondition = {};
 
@@ -302,17 +306,26 @@ export class CustomersService {
           HttpStatus.OK,
           'Customers balance retrieved successfully',
           {
-            customerBalancePayableGold : customerBalancePayableGold,
-            customerBalanceReceivableGold : customerBalanceReceivableGold,
-            customerBalancePayableAmount : customerBalancePayableAmount,
-            customerBalanceReceivableAmount : customerBalanceReceivableAmount,
-            totalCustomers : totalCustomers
+            customerBalancePayableGold: customerBalancePayableGold,
+            customerBalanceReceivableGold: customerBalanceReceivableGold,
+            customerBalancePayableAmount: customerBalancePayableAmount,
+            customerBalanceReceivableAmount: customerBalanceReceivableAmount,
+            totalCustomers: totalCustomers
           },
           req,
         );
       });
     }
     catch (error) {
+      return this.res.generateError(error || 'Something went wrong', req);
+    }
+  }
+
+  async getCustomerBalance(customerId: number,req: Request) {
+    try {
+      const customerBalance = await this._customerBalanceRepo.findOneBy({ customerId: customerId });
+      return customerBalance;
+    } catch (error) {
       return this.res.generateError(error || 'Something went wrong', req);
     }
   }
