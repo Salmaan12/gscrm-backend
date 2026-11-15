@@ -452,6 +452,7 @@ export class ProductService {
                     string,
                     {
                         productId: number;
+                        productName: string;
                         type: string;
                         transactionCategory: string;
                         weight: number;
@@ -465,6 +466,7 @@ export class ProductService {
                     }
                     productMap.set((product.id + ' _ GIVEN'), {
                         productId: product.id,
+                        productName: product.name,
                         type: product.type,
                         transactionCategory: 'GIVEN',
                         weight: 0,
@@ -472,6 +474,7 @@ export class ProductService {
                     });
                     productMap.set((product.id + ' _ RECEIVED'), {
                         productId: product.id,
+                        productName: product.name,
                         type: product.type,
                         transactionCategory: 'RECEIVED',
                         weight: 0,
@@ -557,7 +560,7 @@ export class ProductService {
                 return this.res.generateResponse(
                     200,
                     'Products wise Received Given stats retrieved successfully',
-                    productMap.values,
+                    Array.from(productMap.values()),
                     req
                 );
 
