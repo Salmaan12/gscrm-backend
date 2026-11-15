@@ -40,8 +40,8 @@ export class CustomersController {
 
     @Get('getCustomerById/:id')
     @UseGuards(JwtAuthGuard)
-    findCustomerById(@Param('id') id: string) {
-        return this._customers.getCustomerById(id);
+    findCustomerById(@Param('id') id: string, @Request() req: request) {
+        return this._customers.getCustomerById(id,req);
     }
 
     @Delete('delete/:id')
@@ -51,10 +51,16 @@ export class CustomersController {
     }
 
     
-    @Get('customerWithbalance')
+    @Get('customerWithBalance')
     @UseGuards(JwtAuthGuard)
-    getCustomerWithbalance(@Request() req: request){
-        return this._customers.getCustomerWithbalance(req);
+    getCustomerWithBalance(@Request() req: request){
+        return this._customers.getCustomerWithBalance(req);
+    }
+
+    @Get('getCustomerBalance/:id')
+    @UseGuards(JwtAuthGuard)
+    getCustomerWithbalance(@Param('id', ParseIntPipe) id: number,@Request() req: request){
+        return this._customers.getCustomerBalance(id,req);
     }
 
 }
