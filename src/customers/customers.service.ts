@@ -109,7 +109,7 @@ export class CustomersService {
     }
   }
 
-  async getCustomerById(customerId: string,req: Request) {
+  async getCustomerById(customerId: string, req: Request) {
     try {
       const customer = await this._customerRepo.findOneBy({ id: +customerId });
       return customer;
@@ -219,86 +219,36 @@ export class CustomersService {
     }
   }
 
-  async getCustomerWithBalance(req: Request) {
+  async getCustomerWithBalance(params: PaginationDto, req: Request) {
     try {
-      //let whereCondition = {};
-
+      const { page, pageSize, searchStr } = params;
       return await this._dataSource.transaction(async (manager) => {
-
-        //const customerBalanceRepo = manager.getRepository(CustomerBalance);
+        const customerBalanceRepo = manager.getRepository(CustomerBalance);
         const customerRepo = manager.getRepository(Customer);
+        const query = customerBalanceRepo
+          .createQueryBuilder('balance')
+          .leftJoinAndSelect('balance.customer', 'customer')
+          .select([
+            'balance.id',
+            'balance.customerId',
+            'balance.weight',
+            'balance.amount',
+            'customer.id',
+            'customer.customerName',
+          ])
+          .where('(balance.weight != 0 OR balance.amount != 0)');
 
-        // whereCondition = { weight: MoreThan(0) };
-        // const customerBalancePayableGold = await customerBalanceRepo.find({
-        //   where: whereCondition,
-        //   select: {
-        //     id: true,
-        //     customerId: true,
-        //     weight: true,
-        //     customer: {
-        //       customerName: true,
-        //       id: true, // Required by TypeORM to map relations properly
-        //     },
-        //   },
-        //   relations: {
-        //     customer: true,
-        //   },
-        //   order: { weight: 'DESC' }
-        // });
+        if (searchStr && searchStr.trim()) {
+          query.andWhere('customer.customerName LIKE :search', {
+            search: `%${searchStr.trim()}%`,
+          });
+        }
 
-        // whereCondition = { weight: LessThan(0) };
-        // const customerBalanceReceivableGold = await customerBalanceRepo.find({
-        //   where: whereCondition,
-        //   select: {
-        //     id: true,
-        //     customerId: true,
-        //     weight: true,
-        //     customer: {
-        //       customerName: true,
-        //       id: true, // Required by TypeORM to map relations properly
-        //     },
-        //   },
-        //   relations: {
-        //     customer: true,
-        //   },
-        //   order: { weight: 'DESC' }
-        // });
-
-        // whereCondition = { amount: MoreThan(0) };
-        // const customerBalancePayableAmount = await customerBalanceRepo.find({
-        //   where: whereCondition,
-        //   select: {
-        //     id: true,
-        //     customerId: true,
-        //     amount: true,
-        //     customer: {
-        //       customerName: true,
-        //       id: true, // Required by TypeORM to map relations properly
-        //     },
-        //   },
-        //   relations: {
-        //     customer: true,
-        //   },
-        //   order: { amount: 'DESC' }
-        // });
-
-        // whereCondition = { amount: LessThan(0) };
-        // const customerBalanceReceivableAmount = await customerBalanceRepo.find({
-        //   where: whereCondition,
-        //   select: {
-        //     id: true,
-        //     customerId: true,
-        //     amount: true,
-        //     customer: {
-        //       customerName: true,
-        //       id: true, // Required by TypeORM to map relations properly
-        //     },
-        //   },
-        //   relations: {
-        //     customer: true,
-        //   },
-        //   order: { amount: 'DESC' }
-        // });
+        const [customerBalances, total] = await query
+          .skip((parseInt(page) - 1) * parseInt(pageSize))
+          .take(parseInt(pageSize))
+          .orderBy('balance.id', 'DESC')
+          .getManyAndCount();
 
         const totalCustomers = await customerRepo.count();
 
@@ -306,10 +256,11 @@ export class CustomersService {
           HttpStatus.OK,
           'Customers balance retrieved successfully',
           {
-            customerBalancePayableGold: [],
-            customerBalanceReceivableGold: [],
-            customerBalancePayableAmount: [],
-            customerBalanceReceivableAmount: [],
+            page,
+            pageSize,
+            total,
+            totalPages: Math.ceil(total / parseInt(pageSize)),
+            list: customerBalances,
             totalCustomers: totalCustomers
           },
           req,
@@ -321,7 +272,7 @@ export class CustomersService {
     }
   }
 
-  async getCustomerBalance(customerId: number,req: Request) {
+  async getCustomerBalance(customerId: number, req: Request) {
     try {
       const customerBalance = await this._customerBalanceRepo.findOneBy({ customerId: customerId });
       return customerBalance;
