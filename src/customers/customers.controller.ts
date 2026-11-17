@@ -53,8 +53,8 @@ export class CustomersController {
     
     @Get('customerWithBalance')
     @UseGuards(JwtAuthGuard)
-    getCustomerWithBalance(@Request() req: request){
-        return this._customers.getCustomerWithBalance(req);
+    getCustomerWithBalance(@Query() params: PaginationDto,@Request() req: request){
+        return this._customers.getCustomerWithBalance(params,req);
     }
 
     @Get('getCustomerBalance/:id')
