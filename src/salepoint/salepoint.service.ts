@@ -174,13 +174,13 @@ export class SalePointService {
                 weight += Number((entryweight * multiplier).toFixed(3));
               } else if (productType === 'RATEWORK' || productType === 'OPENING') {
                 amount += entryamount * multiplier;
-                if(productType === 'RATEWORK') {
+                if (productType === 'RATEWORK') {
                   weight += Number(((entryweight * -1) * multiplier).toFixed(3));
                 }
                 else {
                   weight += Number((entryweight * multiplier).toFixed(3));
                 }
-                
+
               }
             }
 
@@ -207,6 +207,54 @@ export class SalePointService {
       }
     } catch (error) {
       return this.res.generateError(error || 'Something went wrong', req);
+    }
+  }
+
+  async updateSalePointEntiries(id: number, body: CreateSalePoint, req: Request) {
+    try {
+
+      // Update SalePoint in Database
+      const updatesalepoint = await this._salepointRepo.createQueryBuilder('salepoint')
+        .update()
+        .set({
+          referenceNo: body.referenceNo,
+          customerId: body.customerId,
+          productId: body.productId,
+          productBrandId: body.productBrandId,
+          productBrandSkuId: body.productBrandSkuId,
+          transactionCategory: body.transactionCategory,
+          report: body.report,
+          weight: body.weight,
+          pureWeight: body.pureWeight,
+          qty: body.qty,
+          amount: body.amount,
+          difference: body.difference,
+          differenceTotal: body.differenceTotal,
+          making: body.making,
+          makingTotal: body.makingTotal,
+          refining: body.refining,
+          refiningTotal: body.refiningTotal,
+          karat: body.karat,
+          rate: body.rate,
+          status: body.status,
+          recordcreated_at: body.recordcreated_at,
+          productType: body.productType,
+          descriptionNote: body.descriptionNote,
+        })
+        .where('id = :id', { id })
+        .execute()
+
+      // if salepoint entry not update return error message
+      if (!updatesalepoint.affected) throw new Error("salepoint entry not updated, internal server issues");
+
+      /// Return success message
+      return this.res.generateResponse(HttpStatus.OK, "Salepoint Entry Updated Successfully", [], req);
+
+    } catch (error) {
+      return this.res.generateError(
+        error || 'Something went wrong',
+        req
+      );
     }
   }
 

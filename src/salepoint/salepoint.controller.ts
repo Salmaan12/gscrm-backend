@@ -21,6 +21,13 @@ export class SalePointController {
         return this._salepoint.createSalePointEntiries(body, req);
     }
 
+    @Post('update/:id')
+    @UseGuards(JwtAuthGuard)
+    @UsePipes(new ValidationPipe({ transform: true }))
+    updateSalePointEntiries(@Param('id', ParseIntPipe) id: number,body: CreateSalePoint, @Request() req: request) {
+        return this._salepoint.updateSalePointEntiries(id,body, req);
+    }
+
     @Get('all/dailyReport')
     @UseGuards(JwtAuthGuard)
     @UsePipes(new ValidationPipe({ transform: true }))
