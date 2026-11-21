@@ -212,7 +212,6 @@ export class SalePointService {
 
   async updateSalePointEntiries(id: number, body: CreateSalePoint, req: Request) {
     try {
-
       // Fetch GINNI record
       const ginniRecord = await this._salepointRepo.findOne({
         where: { id }
@@ -233,77 +232,78 @@ export class SalePointService {
         );
       }
 
-      // Fetch associated REFINING record
-      const refiningRecord = await this._salepointRepo
-        .createQueryBuilder('salepoint')
-        .where('salepoint.id = :refiningId', {
-          refiningId: id + 1
-        })
-        .andWhere(
-          'UPPER(salepoint.productType) LIKE :productType',
-          { productType: '%REFINING%' }
-        )
-        .getOne();
+      return await this._dataSource.transaction(async (manager) => {
+        const salepointRepo = manager.getRepository(SalePoint);
 
-      let SalePointRecordsToUpdate : SalePoint[] = [];
+        const customerId = body.customerId;
+        const customerBalanceRepo = manager.getRepository(CustomerBalance);
+        const customerBalance = await customerBalanceRepo.findOne({
+          where: {
+            customerId: customerId as any,
+          },
+          lock: {
+            mode: 'pessimistic_write',
+          },
+        });
 
-      // Update SalePoint in Database
-      // const updatesalepoint = await this._salepointRepo.createQueryBuilder('salepoint')
-      //   .update()
-      //   .set({
-      //     referenceNo: body.referenceNo,
-      //     customerId: body.customerId,
-      //     productId: body.productId,
-      //     productBrandId: body.productBrandId,
-      //     productBrandSkuId: body.productBrandSkuId,
-      //     transactionCategory: body.transactionCategory,
-      //     report: body.report,
-      //     weight: body.weight,
-      //     pureWeight: body.pureWeight,
-      //     qty: body.qty,
-      //     amount: body.amount,
-      //     difference: body.difference,
-      //     differenceTotal: body.differenceTotal,
-      //     making: body.making,
-      //     makingTotal: body.makingTotal,
-      //     refining: body.refining,
-      //     refiningTotal: body.refiningTotal,
-      //     karat: body.karat,
-      //     rate: body.rate,
-      //     status: body.status,
-      //     recordcreated_at: body.recordcreated_at,
-      //     productType: body.productType,
-      //     descriptionNote: body.descriptionNote,
-      //   })
-      //   .where('id = :id', { id })
-      //   .execute();
+        if (customerBalance) {
+          let weight = Number(customerBalance.weight ?? 0);
 
-      ginniRecord.refining = body.refining;
-      ginniRecord.refiningTotal = body.refiningTotal;
-      ginniRecord.report = body.report;
-      ginniRecord.pureWeight = body.pureWeight;
+          // Determine transaction direction
+          const category = String(body.transactionCategory).toUpperCase();
 
-      SalePointRecordsToUpdate.push(ginniRecord);
+          const multiplier =
+            (category === 'GIVEN' || category === 'BILL RECEIVED') ? -1 : (category === 'RECEIVED' || category === 'BILL GIVEN') ? 1 : 0;
 
+          const entrypureWeightOld = Number(ginniRecord.pureWeight ?? 0);
+          const entrypureWeightCurrent = Number(body.pureWeight ?? 0);
 
-      if (refiningRecord) {
-        refiningRecord.refining = body.refining;
-        refiningRecord.refiningTotal = body.refiningTotal;
-        refiningRecord.report = body.report;
-        refiningRecord.pureWeight = body.pureWeight;
+          weight -= Number((entrypureWeightOld * multiplier).toFixed(3));
+          weight += Number((entrypureWeightCurrent * multiplier).toFixed(3));
 
-        SalePointRecordsToUpdate.push(refiningRecord);
-      }
+          customerBalance.weight = String(weight);
+          await customerBalanceRepo.save(customerBalance);
+        }
 
-      
-      // Save both records in one call
-      let UpdatedSalePointRecords = await this._salepointRepo.save(SalePointRecordsToUpdate);
+        // Update SalePoint in Database
+        const updatesalepoint = await salepointRepo.createQueryBuilder('salepoint')
+          .update()
+          .set({
+            // referenceNo: body.referenceNo,
+            // customerId: body.customerId,
+            // productId: body.productId,
+            // productBrandId: body.productBrandId,
+            // productBrandSkuId: body.productBrandSkuId,
+            // transactionCategory: body.transactionCategory,
+            report: body.report,
+            weight: body.weight,
+            pureWeight: body.pureWeight,
+            // qty: body.qty,
+            // amount: body.amount,
+            // difference: body.difference,
+            // differenceTotal: body.differenceTotal,
+            // making: body.making,
+            // makingTotal: body.makingTotal,
+            // refining: body.refining,
+            // refiningTotal: body.refiningTotal,
+            // karat: body.karat,
+            // rate: body.rate,
+            status: "SUBMITTED",
+            // recordcreated_at: body.recordcreated_at,
+            // productType: body.productType,
+            // descriptionNote: body.descriptionNote,
+          })
+          .where('id = :id', { id })
+          .execute()
 
-      // if salepoint entry not update return error message
-      if (UpdatedSalePointRecords.length == 0) throw new Error("salepoint entry not updated, internal server issues");
+        // if salepoint entry not update return error message
+        if (!updatesalepoint.affected)
+          return this.res.generateError("salepoint entry not updated, internal server issues", req);
 
-      /// Return success message
-      return this.res.generateResponse(HttpStatus.OK, "Salepoint Entry Updated Successfully", [], req);
+        /// Return success message
+        return this.res.generateResponse(HttpStatus.OK, "Salepoint Entry Updated Successfully", [], req);
+
+      });
 
     } catch (error) {
       return this.res.generateError(
@@ -651,10 +651,17 @@ export class SalePointService {
         },
       });
 
+      const resultSet = salepointentries.map(entry => ({
+        ...entry,
+        isEditable:
+          String(entry.productType ?? '').toUpperCase() === 'GINNI' &&
+          String(entry.status ?? '').toUpperCase() === 'PENDING'
+      }));
+
       return this.res.generateResponse(
         HttpStatus.OK,
         'Sale Point Entries retrieved successfully',
-        salepointentries,
+        resultSet,
         req,
       );
     } catch (error) {
