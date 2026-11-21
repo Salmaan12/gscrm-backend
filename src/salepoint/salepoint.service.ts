@@ -213,39 +213,94 @@ export class SalePointService {
   async updateSalePointEntiries(id: number, body: CreateSalePoint, req: Request) {
     try {
 
-      // Update SalePoint in Database
-      const updatesalepoint = await this._salepointRepo.createQueryBuilder('salepoint')
-        .update()
-        .set({
-          referenceNo: body.referenceNo,
-          customerId: body.customerId,
-          productId: body.productId,
-          productBrandId: body.productBrandId,
-          productBrandSkuId: body.productBrandSkuId,
-          transactionCategory: body.transactionCategory,
-          report: body.report,
-          weight: body.weight,
-          pureWeight: body.pureWeight,
-          qty: body.qty,
-          amount: body.amount,
-          difference: body.difference,
-          differenceTotal: body.differenceTotal,
-          making: body.making,
-          makingTotal: body.makingTotal,
-          refining: body.refining,
-          refiningTotal: body.refiningTotal,
-          karat: body.karat,
-          rate: body.rate,
-          status: body.status,
-          recordcreated_at: body.recordcreated_at,
-          productType: body.productType,
-          descriptionNote: body.descriptionNote,
+      // Fetch GINNI record
+      const ginniRecord = await this._salepointRepo.findOne({
+        where: { id }
+      });
+
+      if (!ginniRecord) {
+        return this.res.generateError(
+          'SalePoint record not found for Update',
+          req,
+        );
+      }
+
+      if (!String(ginniRecord.productType ?? '')
+        .toUpperCase().includes('GINNI')) {
+        return this.res.generateError(
+          'Provided record is not a GINNI entry',
+          req,
+        );
+      }
+
+      // Fetch associated REFINING record
+      const refiningRecord = await this._salepointRepo
+        .createQueryBuilder('salepoint')
+        .where('salepoint.id = :refiningId', {
+          refiningId: id + 1
         })
-        .where('id = :id', { id })
-        .execute()
+        .andWhere(
+          'UPPER(salepoint.productType) LIKE :productType',
+          { productType: '%REFINING%' }
+        )
+        .getOne();
+
+      let SalePointRecordsToUpdate : SalePoint[] = [];
+
+      // Update SalePoint in Database
+      // const updatesalepoint = await this._salepointRepo.createQueryBuilder('salepoint')
+      //   .update()
+      //   .set({
+      //     referenceNo: body.referenceNo,
+      //     customerId: body.customerId,
+      //     productId: body.productId,
+      //     productBrandId: body.productBrandId,
+      //     productBrandSkuId: body.productBrandSkuId,
+      //     transactionCategory: body.transactionCategory,
+      //     report: body.report,
+      //     weight: body.weight,
+      //     pureWeight: body.pureWeight,
+      //     qty: body.qty,
+      //     amount: body.amount,
+      //     difference: body.difference,
+      //     differenceTotal: body.differenceTotal,
+      //     making: body.making,
+      //     makingTotal: body.makingTotal,
+      //     refining: body.refining,
+      //     refiningTotal: body.refiningTotal,
+      //     karat: body.karat,
+      //     rate: body.rate,
+      //     status: body.status,
+      //     recordcreated_at: body.recordcreated_at,
+      //     productType: body.productType,
+      //     descriptionNote: body.descriptionNote,
+      //   })
+      //   .where('id = :id', { id })
+      //   .execute();
+
+      ginniRecord.refining = body.refining;
+      ginniRecord.refiningTotal = body.refiningTotal;
+      ginniRecord.report = body.report;
+      ginniRecord.pureWeight = body.pureWeight;
+
+      SalePointRecordsToUpdate.push(ginniRecord);
+
+
+      if (refiningRecord) {
+        refiningRecord.refining = body.refining;
+        refiningRecord.refiningTotal = body.refiningTotal;
+        refiningRecord.report = body.report;
+        refiningRecord.pureWeight = body.pureWeight;
+
+        SalePointRecordsToUpdate.push(refiningRecord);
+      }
+
+      
+      // Save both records in one call
+      let UpdatedSalePointRecords = await this._salepointRepo.save(SalePointRecordsToUpdate);
 
       // if salepoint entry not update return error message
-      if (!updatesalepoint.affected) throw new Error("salepoint entry not updated, internal server issues");
+      if (UpdatedSalePointRecords.length == 0) throw new Error("salepoint entry not updated, internal server issues");
 
       /// Return success message
       return this.res.generateResponse(HttpStatus.OK, "Salepoint Entry Updated Successfully", [], req);
