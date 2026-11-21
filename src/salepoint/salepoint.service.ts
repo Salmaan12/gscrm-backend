@@ -118,6 +118,8 @@ export class SalePointService {
                 recordcreated_at: item.recordcreated_at,
                 productType: item.productType,
                 descriptionNote: item.descriptionNote,
+                recordedBy: item.recordedBy,
+                customerRepresentative: item.customerRepresentative,
               }) as SalePoint,
           );
 
@@ -292,6 +294,8 @@ export class SalePointService {
             // recordcreated_at: body.recordcreated_at,
             // productType: body.productType,
             // descriptionNote: body.descriptionNote,
+            // recordedBy: body.recordedBy,
+            // customerRepresentative: body.customerRepresentative,
           })
           .where('id = :id', { id })
           .execute()
@@ -373,6 +377,8 @@ export class SalePointService {
           recordcreated_at: true,
           productType: true,
           descriptionNote: true,
+          recordedBy: true,
+          customerRepresentative: true,
           customer: {
             customerName: true,
             id: true, // Required by TypeORM to map relations properly
@@ -492,6 +498,8 @@ export class SalePointService {
         recordcreated_at: true,
         productType: true,
         descriptionNote: true,
+        recordedBy: true,
+        customerRepresentative: true,
         customer: {
           customerName: true,
           id: true, // Required by TypeORM to map relations properly
@@ -623,6 +631,8 @@ export class SalePointService {
           recordcreated_at: true,
           productType: true,
           descriptionNote: true,
+          recordedBy: true,
+          customerRepresentative: true,
           customer: {
             customerName: true,
             id: true, // Required by TypeORM to map relations properly
