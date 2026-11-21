@@ -88,6 +88,12 @@ export class SalePoint {
     @Column({ type: 'varchar', length: 255 })
     descriptionNote!: string;
 
+    @Column({ type: 'varchar', length: 255 })
+    recordedBy!: string;
+
+    @Column({ type: 'varchar', length: 255 })
+    customerRepresentative!: string;
+
     @Column({
         type: 'datetime',
     })

@@ -24,7 +24,7 @@ export class SalePointController {
     @Post('update/:id')
     @UseGuards(JwtAuthGuard)
     @UsePipes(new ValidationPipe({ transform: true }))
-    updateSalePointEntiries(@Param('id', ParseIntPipe) id: number,body: CreateSalePoint, @Request() req: request) {
+    updateSalePointEntiries(@Param('id', ParseIntPipe) id: number,@Body() body: CreateSalePoint, @Request() req: request) {
         return this._salepoint.updateSalePointEntiries(id,body, req);
     }
 

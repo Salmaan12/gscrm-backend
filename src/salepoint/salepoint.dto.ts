@@ -72,6 +72,12 @@ export class CreateSalePoint {
     @IsOptional()
     descriptionNote!: string;
 
+    @IsOptional()
+    recordedBy!: string;
+
+    @IsOptional()
+    customerRepresentative!: string;
+
 }
 
 export class SalePointDto {
